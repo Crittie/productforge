@@ -14,6 +14,17 @@ from fastapi.templating import Jinja2Templates
 from ..engine.builder import PDFBuilder
 from ..engine.models import ProductConfig
 
+# Optional imports for content extraction (graceful fallback)
+try:
+    import fitz as _fitz  # PyMuPDF
+except ImportError:
+    _fitz = None
+
+try:
+    from docx import Document as _DocxDocument
+except ImportError:
+    _DocxDocument = None
+
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _PRESET_DIR = os.path.join(_DIR, "..", "presets")
 _UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "productforge_uploads")
@@ -71,6 +82,85 @@ async def upload_logo(file: UploadFile = File(...)) -> JSONResponse:
         f.write(contents)
 
     return JSONResponse(content={"path": path, "filename": file.filename})
+
+
+def _extract_pdf(path: str) -> str:
+    """Extract text from a PDF file."""
+    if _fitz is None:
+        raise RuntimeError("PDF support requires pymupdf: pip install pymupdf")
+    doc = _fitz.open(path)
+    paragraphs: list[str] = []
+    for page in doc:
+        blocks = page.get_text("blocks")
+        for block in blocks:
+            if block[6] == 0:  # text block
+                text = block[4].strip()
+                if text:
+                    paragraphs.append(text)
+    doc.close()
+    return "\n\n".join(paragraphs)
+
+
+def _extract_docx(path: str) -> str:
+    """Extract text from a .docx file, preserving headings as markdown."""
+    if _DocxDocument is None:
+        raise RuntimeError("DOCX support requires python-docx: pip install python-docx")
+    doc = _DocxDocument(path)
+    sections: list[str] = []
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+        style = para.style.name or ""
+        if style.startswith("Heading"):
+            sections.append(f"# {text}")
+        else:
+            sections.append(text)
+    return "\n\n".join(sections)
+
+
+@router.post("/api/extract")
+async def extract_content(file: UploadFile = File(...)) -> JSONResponse:
+    """Extract text content from an uploaded PDF, DOCX, or text file."""
+    fname = (file.filename or "").lower()
+    contents = await file.read()
+
+    # Save to temp file for libraries that need a path
+    ext = os.path.splitext(fname)[1] or ".txt"
+    tmp_path = os.path.join(_UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
+    with open(tmp_path, "wb") as f:
+        f.write(contents)
+
+    try:
+        if fname.endswith(".pdf"):
+            text = _extract_pdf(tmp_path)
+        elif fname.endswith((".docx", ".doc")):
+            text = _extract_docx(tmp_path)
+        elif fname.endswith((".txt", ".md", ".text", ".markdown")):
+            text = contents.decode("utf-8", errors="replace")
+        else:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Unsupported file type: {ext}. Use PDF, DOCX, TXT, or MD."},
+            )
+    except RuntimeError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to extract text: {exc}"},
+        )
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+    return JSONResponse(content={
+        "text": text,
+        "filename": file.filename,
+        "length": len(text),
+    })
 
 
 @router.post("/api/generate")

@@ -491,6 +491,18 @@ body {
     border-color: var(--accent);
 }
 
+/* Upload zone */
+.upload-zone {
+    padding: 6px 0;
+}
+
+.upload-zone .file-upload-area label {
+    padding: 20px 30px;
+    text-align: center;
+    width: 100%;
+    justify-content: center;
+}
+
 /* Scrollbar */
 .chat-messages::-webkit-scrollbar { width: 6px; }
 .chat-messages::-webkit-scrollbar-track { background: transparent; }

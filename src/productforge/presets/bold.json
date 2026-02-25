@@ -1,0 +1,30 @@
+{
+  "name": "Bold",
+  "description": "Hypercolor style — cobalt and electric yellow, attention-grabbing",
+  "design": {
+    "colors": {
+      "primary": "#1E40AF",
+      "secondary": "#1E3A8A",
+      "accent": "#FACC15",
+      "background": "#ffffff",
+      "muted": "#94A3B8",
+      "line": "#E2E8F0",
+      "ink": "#1E293B",
+      "earth": "#1E293B"
+    },
+    "fonts": {
+      "heading": "Helvetica-Bold",
+      "body": "Helvetica",
+      "body_italic": "Helvetica-Oblique",
+      "mono": "Courier"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 50.4,
+      "right": 50.4,
+      "top": 50.4,
+      "bottom": 50.4
+    },
+    "layout": "clean"
+  }
+}

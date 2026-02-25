@@ -1,0 +1,30 @@
+{
+  "name": "Brutalist",
+  "description": "Neo-brutalism style — raw, bold, thick borders, high contrast",
+  "design": {
+    "colors": {
+      "primary": "#000000",
+      "secondary": "#1a1a1a",
+      "accent": "#F6C90E",
+      "background": "#F5F0E0",
+      "muted": "#6B7280",
+      "line": "#000000",
+      "ink": "#000000",
+      "earth": "#000000"
+    },
+    "fonts": {
+      "heading": "Helvetica-Bold",
+      "body": "Helvetica",
+      "body_italic": "Helvetica-Oblique",
+      "mono": "Courier"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 50.4,
+      "right": 50.4,
+      "top": 50.4,
+      "bottom": 50.4
+    },
+    "layout": "clean"
+  }
+}
