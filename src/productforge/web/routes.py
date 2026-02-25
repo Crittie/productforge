@@ -85,18 +85,53 @@ async def upload_logo(file: UploadFile = File(...)) -> JSONResponse:
 
 
 def _extract_pdf(path: str) -> str:
-    """Extract text from a PDF file."""
+    """Extract text from a PDF file, detecting headings via font size."""
     if _fitz is None:
         raise RuntimeError("PDF support requires pymupdf: pip install pymupdf")
     doc = _fitz.open(path)
+
+    # First pass: find the dominant (most common) body font size
+    size_counts: dict[float, int] = {}
+    for page in doc:
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                for span in line["spans"]:
+                    if span["text"].strip():
+                        s = round(span["size"], 1)
+                        size_counts[s] = size_counts.get(s, 0) + len(span["text"])
+    body_size = max(size_counts, key=size_counts.get) if size_counts else 12.0
+
+    # Second pass: extract text, marking larger/bold text as headings
     paragraphs: list[str] = []
     for page in doc:
-        blocks = page.get_text("blocks")
-        for block in blocks:
-            if block[6] == 0:  # text block
-                text = block[4].strip()
-                if text:
-                    paragraphs.append(text)
+        for block in page.get_text("dict")["blocks"]:
+            lines_in_block = block.get("lines", [])
+            if not lines_in_block:
+                continue
+            # Collect text for this block and check if it's a heading
+            block_text_parts: list[str] = []
+            is_heading = False
+            for line in lines_in_block:
+                for span in line["spans"]:
+                    text = span["text"].strip()
+                    if not text:
+                        continue
+                    block_text_parts.append(text)
+                    sz = round(span["size"], 1)
+                    font = span.get("font", "")
+                    if sz > body_size + 1.5 or (
+                        sz >= body_size and "Bold" in font
+                        and len(text) < 80
+                    ):
+                        is_heading = True
+            full = " ".join(block_text_parts).strip()
+            if not full:
+                continue
+            if is_heading and len(full) < 120:
+                paragraphs.append(f"# {full}")
+            else:
+                paragraphs.append(full)
+
     doc.close()
     return "\n\n".join(paragraphs)
 
