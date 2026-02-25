@@ -159,24 +159,66 @@ function extractTopic(expertise) {
 function extractAudience(audience) {
     let a = audience.trim();
 
-    // "people who ...", "those who ..."
-    a = a.replace(/^(?:people|those|anyone|folks|individuals)\s+who\s+/i, "");
+    // 1) Strip generic pronouns + "who": "someone who ...", "people who ..."
+    a = a.replace(/^(?:people|those|anyone|someone|everybody|everyone|folks|individuals|a person|persons?)\s+who\s+/i, "");
 
-    // "beginners who want to ..." → "Beginners"
-    const wantMatch = a.match(/^(.+?)\s+(?:who |that |looking |wanting |trying |struggling )/i);
-    if (wantMatch && wantMatch[1].length > 3) a = wantMatch[1].trim();
+    // 2) FIRST try to keep a concrete noun before "who/that/looking/wanting":
+    //    "beginners who want to ..." → "Beginners"
+    //    "women over 40 who ..." → "women over 40"
+    //    Skip if the noun is generic (already stripped above, but catch stragglers)
+    const nounBeforeWho = a.match(/^(.+?)\s+(?:who |that |looking |wanting |trying |struggling )/i);
+    if (nounBeforeWho) {
+        const before = nounBeforeWho[1].trim().toLowerCase();
+        const generic = new Set(["someone", "anyone", "everybody", "everyone", "person", "people", "they", "them"]);
+        if (!generic.has(before) && nounBeforeWho[1].length > 3) {
+            a = nounBeforeWho[1].trim();
+        }
+    }
 
-    // Take first clause (comma, semicolon, period — NOT hyphen)
+    // 3) Convert verb phrases into audience labels (only runs on remaining text):
+    //    "obsessively listens to X" → "X Fans"
+    //    "loves X" → "X Fans", "is into X" → "X Fans"
+    const listenMatch = a.match(/(?:listens?\s+to|(?:is|are)\s+(?:into|obsessed\s+with)|loves?|(?:is|are)\s+(?:a\s+)?(?:huge|big)?\s*fans?\s+of)\s+(.+)/i);
+    if (listenMatch) {
+        let subject = listenMatch[1].trim().split(/[,;.]/)[0].trim();
+        subject = subject.replace(/\s+(?:a lot|all the time|constantly|obsessively|really)$/i, "").trim();
+        const words = subject.split(/\s+/);
+        if (words.length <= 4 && words.length >= 1) {
+            a = subject + " Fans";
+        }
+    }
+
+    // 4) "wants to learn X" → "X Beginners", "wants to become a chef" → "Aspiring Chefs"
+    const wantsLearn = a.match(/(?:wants?|trying|hoping)\s+to\s+learn\s+(?:about\s+)?(.+)/i);
+    if (wantsLearn) {
+        let skill = wantsLearn[1].trim().split(/[,;.]/)[0].trim();
+        if (skill.split(/\s+/).length <= 3) a = skill + " Beginners";
+    }
+    const wantsBecome = a.match(/(?:wants?|trying|hoping)\s+to\s+(?:become|be)\s+(?:a |an )?(.+)/i);
+    if (wantsBecome) {
+        let role = wantsBecome[1].trim().split(/[,;.]/)[0].trim();
+        if (role.split(/\s+/).length <= 2) {
+            // Capitalize and pluralize
+            role = role.charAt(0).toUpperCase() + role.slice(1);
+            if (!role.endsWith("s")) role += "s";
+            a = "Aspiring " + role;
+        }
+    }
+
+    // 5) Take first clause (comma, semicolon, period — NOT hyphen)
     a = a.split(/[,;.]/)[0].trim();
 
-    // Cut before participial/descriptive phrases that make titles awkward
+    // 6) Cut before participial/descriptive phrases
     a = a.replace(/\s+(?:dealing|drowning|struggling|suffering|coping|worried|scared|confused|tired|sick)\s+(?:with|in|of|about)\b.*$/i, "").trim();
 
-    // Cap at 4 words max for title readability
+    // 7) Strip remaining filler adverbs
+    a = a.replace(/^(?:obsessively|constantly|really|just|basically)\s+/i, "");
+
+    // 8) Cap at 4 words for title readability
     const words = a.split(/\s+/);
     if (words.length > 4) a = words.slice(0, 4).join(" ");
 
-    // Title-case
+    // 9) Title-case
     const smallWords = new Set(["a", "an", "the", "and", "or", "but", "in", "on", "of", "for", "to", "with"]);
     a = a.split(/\s+/).filter(Boolean).map((w, i) => {
         const lower = w.toLowerCase();
@@ -184,7 +226,9 @@ function extractAudience(audience) {
         return w.charAt(0).toUpperCase() + w.slice(1);
     }).join(" ");
 
-    if (!a || a.length < 3) {
+    // 10) Final fallback — if still generic, use first 4 words of original
+    const genericFinal = new Set(["Someone", "Anyone", "Everybody", "Everyone", "Person", "People"]);
+    if (!a || a.length < 3 || genericFinal.has(a)) {
         a = audience.split(/\s+/).slice(0, 4).join(" ");
         a = a.replace(/\b\w/g, c => c.toUpperCase());
     }
@@ -196,11 +240,6 @@ function extractAudience(audience) {
 function generateTitles(expertise, audience, problem) {
     const topic = extractTopic(expertise);
     const reader = extractAudience(audience);
-
-    // Extract a short problem phrase
-    let pain = problem.split(/[,\-—.;]/)[0].trim();
-    pain = pain.replace(/^they\s+/i, "").replace(/^(?:don't|can't|won't|aren't)\s+/i, "");
-    pain = pain.charAt(0).toUpperCase() + pain.slice(1);
 
     return [
         `The ${topic} Playbook: A Practical Guide for ${reader}`,
