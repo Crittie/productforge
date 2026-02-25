@@ -132,12 +132,13 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
         )
         y -= 0.5 * inch
 
-    # Chapter title
+    # Chapter title — auto-fitted
     if chapter_title:
-        ctx.c.setFont("Helvetica-Bold", 18)
-        ctx.c.setFillColor(ctx.color("ink"))
-        ctx.c.drawString(ctx.margin_left, y, chapter_title)
-        y -= 36
+        y = ctx.draw_title_fitted(
+            chapter_title, "Helvetica-Bold", max_size=18, min_size=14,
+            color=ctx.color("ink"), x=ctx.margin_left, y=y,
+        )
+        y -= 16
 
     is_first_page = True
 

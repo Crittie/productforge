@@ -133,6 +133,53 @@ class RenderContext:
         self.c.drawCentredString(self.W / 2, y, text)
         return y - size * 1.5
 
+    # -- Fitted title ---------------------------------------------------------
+
+    def draw_title_fitted(
+        self,
+        text: str,
+        font: str,
+        max_size: float,
+        min_size: float,
+        color: Color,
+        x: float,
+        y: float,
+        max_width: float | None = None,
+        align: str = "left",
+        line_height_factor: float = 1.3,
+    ) -> float:
+        """Draw a title that auto-scales to fit within max_width.
+
+        Starts at max_size and shrinks until the text wraps to at most
+        3 lines, down to min_size. Returns y after the last line.
+        """
+        if max_width is None:
+            max_width = self.text_area_w
+        # Find best font size
+        size = max_size
+        while size > min_size:
+            lines = simpleSplit(text, font, size, max_width)
+            if len(lines) <= 3:
+                break
+            size -= 1
+        else:
+            lines = simpleSplit(text, font, min_size, max_width)
+            size = min_size
+
+        self.c.setFont(font, size)
+        self.c.setFillColor(color)
+        line_height = size * line_height_factor
+        for line in lines:
+            if align == "center":
+                self.c.drawCentredString(self.W / 2, y, line)
+            elif align == "right":
+                right_x = self.W - self.margin_right
+                self.c.drawRightString(right_x, y, line)
+            else:
+                self.c.drawString(x, y, line)
+            y -= line_height
+        return y
+
     # -- Shapes ---------------------------------------------------------------
 
     def draw_rounded_rect(

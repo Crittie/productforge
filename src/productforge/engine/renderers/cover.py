@@ -73,17 +73,19 @@ def _render_editorial(ctx: RenderContext, data: dict, config: ProductConfig) -> 
         _draw_logo(ctx, logo_path, 0, ctx.H - ctx.margin_top - 20,
                    align="right", max_w=120, max_h=60)
 
-    # Title — right-aligned, lower third
-    ctx.c.setFont(ctx.font("heading"), 26)
-    ctx.c.setFillColor(ctx.color("ink"))
-    ctx.c.drawRightString(ctx.W - ctx.margin_right, 240, title)
+    # Title — right-aligned, auto-fitted
+    y = ctx.draw_title_fitted(
+        title, ctx.font("heading"), max_size=28, min_size=18,
+        color=ctx.color("ink"), x=ctx.margin_left, y=260,
+        align="right",
+    )
 
     # Sage accent line
     right_x = ctx.W - ctx.margin_right
-    ctx.draw_accent_line(right_x - 180, 218, right_x, "accent")
+    ctx.draw_accent_line(right_x - 180, y - 2, right_x, "accent")
 
     # Subtitle lines
-    y = 195
+    y -= 22
     ctx.c.setFont(ctx.font("mono"), 8)
     ctx.c.setFillColor(ctx.color("muted"))
     for line in subtitles:
@@ -137,19 +139,19 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
             badge,
         )
 
-    # Title lines
-    ctx.c.setFillColor(ctx.color("background"))
-    ctx.c.setFont("Helvetica-Bold", 34)
+    # Title — auto-fitted
     y = ctx.H - 3.9 * inch
-    for line in (title if isinstance(title, list) else [title]):
-        ctx.c.drawString(ctx.margin_left, y, line)
-        y -= 0.6 * inch
+    title_text = " ".join(title) if isinstance(title, list) else title
+    y = ctx.draw_title_fitted(
+        title_text, "Helvetica-Bold", max_size=34, min_size=20,
+        color=ctx.color("background"), x=ctx.margin_left, y=y,
+    )
 
     # Subtitle
     if subtitles:
         ctx.c.setFont("Helvetica", 14)
         ctx.c.setFillColor(ctx.color("muted"))
-        y -= 0.1 * inch
+        y -= 10
         for line in subtitles:
             ctx.c.drawString(ctx.margin_left, y, line)
             y -= 20
@@ -185,14 +187,14 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
         _draw_logo(ctx, logo_path, 0, ctx.H / 2 + 140,
                    align="center", max_w=180, max_h=95)
 
-    # Title — centered
+    # Title — centered, auto-fitted
     y = ctx.H / 2 + 40
-    ctx.c.setFont("Helvetica-Bold", 30)
-    ctx.c.setFillColor(ctx.color("background"))
-    title_lines = title if isinstance(title, list) else [title]
-    for line in title_lines:
-        ctx.c.drawCentredString(ctx.W / 2, y, line)
-        y -= 40
+    title_text = " ".join(title) if isinstance(title, list) else title
+    y = ctx.draw_title_fitted(
+        title_text, "Helvetica-Bold", max_size=30, min_size=18,
+        color=ctx.color("background"), x=ctx.margin_left, y=y,
+        align="center",
+    )
 
     # Subtitle
     y -= 10

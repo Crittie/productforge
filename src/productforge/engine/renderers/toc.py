@@ -33,6 +33,9 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     ctx.c.drawString(ctx.margin_left, y, heading)
     y -= 0.7 * inch
 
+    text_x = ctx.margin_left + 0.55 * inch
+    text_max_w = ctx.text_area_w - 0.6 * inch
+
     for entry in entries:
         num = entry.get("number", "")
         title = entry.get("title", "")
@@ -44,18 +47,20 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
             str(num), ctx.color("accent"), ctx.color("background"),
         )
 
-        # Title
-        ctx.c.setFont("Helvetica-Bold", 12)
-        ctx.c.setFillColor(ctx.color("ink"))
-        ctx.c.drawString(ctx.margin_left + 0.55 * inch, y, title)
+        # Title — wrapped
+        ty = ctx.draw_text_wrapped(
+            title, "Helvetica-Bold", 12, ctx.color("ink"),
+            text_x, y, max_width=text_max_w, line_height_factor=1.4,
+        )
 
         # Description
         if desc:
-            ctx.c.setFont("Helvetica", 10)
-            ctx.c.setFillColor(ctx.color("muted"))
-            ctx.c.drawString(ctx.margin_left + 0.55 * inch, y - 0.22 * inch, desc)
+            ty = ctx.draw_text_wrapped(
+                desc, "Helvetica", 10, ctx.color("muted"),
+                text_x, ty + 2, max_width=text_max_w, line_height_factor=1.4,
+            )
 
-        y -= 0.65 * inch
+        y = ty - 12
 
     # Footer box
     if footer_text:
