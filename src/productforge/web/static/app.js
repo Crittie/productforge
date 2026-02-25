@@ -273,7 +273,7 @@ async function askPasteInstead() {
 }
 
 // =========================================================================
-// FLOW: Step 2 — Process content → chapter review
+// FLOW: Step 2 — Process content → detect title/subtitle → confirm
 // =========================================================================
 
 async function processContent(text, source) {
@@ -281,144 +281,98 @@ async function processContent(text, source) {
     addUserMsg(source === "pasted" ? `[Pasted ${text.length} characters]` : `Uploaded: ${source}`);
 
     const chapters = parseChaptersFromText(text);
+
+    // Auto-detect title and subtitle from leading short/empty chapters
+    let guessTitle = "";
+    let guessSubtitle = "";
+    while (chapters.length > 1) {
+        const first = chapters[0];
+        const words = first.content.split(/\s+/).filter(Boolean).length;
+        if (words <= 5) {
+            if (!guessTitle) guessTitle = first.title;
+            else if (!guessSubtitle) guessSubtitle = first.title;
+            else break;
+            chapters.shift();
+        } else {
+            break;
+        }
+    }
+    if (!guessTitle && chapters.length > 0) {
+        guessTitle = chapters[0].title;
+    }
+
     ebook.chapters = chapters;
+    ebook.title = guessTitle;
+    ebook.subtitle = guessSubtitle;
 
     const totalWords = chapters.reduce((s, ch) => s + ch.content.split(/\s+/).filter(Boolean).length, 0);
 
     await addBotMsg(
-        `Found <strong>${chapters.length} chapter${chapters.length !== 1 ? "s" : ""}</strong> &middot; ${totalWords.toLocaleString()} words. Here's what I detected:`,
+        `Got it — <strong>${totalWords.toLocaleString()} words</strong> across ${chapters.length} section${chapters.length !== 1 ? "s" : ""}. Let's set up your ebook.`,
         400,
     );
 
-    await showChapterReview();
+    await askTitle();
 }
 
 // =========================================================================
-// FLOW: Step 3 — Chapter review
-// =========================================================================
-
-async function showChapterReview() {
-    step = "review";
-
-    let html = '<div class="chapter-outline" id="chapter-outline">';
-    ebook.chapters.forEach((ch, i) => {
-        const wordCount = ch.content.split(/\s+/).filter(Boolean).length;
-        html += `<div class="outline-item" data-index="${i}">
-            <span class="outline-num">${i + 1}</span>
-            <input type="text" class="outline-title" value="${escapeAttr(ch.title)}"
-                onchange="window.updateChapterTitle(${i}, this.value)">
-            <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap">${wordCount}w</span>
-            <button class="btn-danger" onclick="window.removeChapter(${i})">x</button>
-        </div>`;
-    });
-    html += '</div>';
-
-    await addBotMsg(html, 0);
-
-    showButtons([
-        { label: "Looks good — next", cls: "btn-primary", onClick: () => { syncTitles(); askTitle(); } },
-        { label: "+ Add chapter", cls: "btn-secondary btn-small", onClick: addChapterManually },
-    ]);
-}
-
-function syncTitles() {
-    document.querySelectorAll(".outline-title").forEach((input, i) => {
-        if (ebook.chapters[i]) ebook.chapters[i].title = input.value;
-    });
-}
-
-window.updateChapterTitle = function(i, val) {
-    if (ebook.chapters[i]) ebook.chapters[i].title = val;
-};
-
-window.removeChapter = function(i) {
-    ebook.chapters.splice(i, 1);
-    const el = document.querySelector(".chapter-outline");
-    if (el) el.closest(".msg").remove();
-    showChapterReview();
-};
-
-async function addChapterManually() {
-    syncTitles();
-    clearInput();
-    const num = ebook.chapters.length + 1;
-    await addBotMsg(`<strong>Title for Chapter ${num}?</strong>`, 300);
-    showTextInput("Chapter title...", async (title) => {
-        addUserMsg(title);
-        clearInput();
-        ebook.chapters.push({ title, content: "" });
-        const idx = ebook.chapters.length - 1;
-        await addBotMsg(`Paste the content for <strong>"${title}"</strong>.`, 300);
-        showTextArea("Paste chapter content...", async (content) => {
-            addUserMsg(`[${content.length} characters]`);
-            ebook.chapters[idx].content = content;
-            clearInput();
-            await showChapterReview();
-        }, "Save");
-    });
-}
-
-// =========================================================================
-// FLOW: Step 4 — Title & Author
+// FLOW: Step 3 — Title, Subtitle, Author
 // =========================================================================
 
 async function askTitle() {
     step = "title";
     clearInput();
-
-    // Guess title from first chapter or filename
-    const guess = ebook.chapters[0]?.title || "";
-    await addBotMsg("<strong>What's the title of your ebook?</strong>", 400);
-    showTextInput("Ebook title", handleTitle, { value: guess });
+    await addBotMsg(`<strong>Confirm your ebook title:</strong>`, 400);
+    showTextInput("Ebook title", handleTitle, { value: ebook.title, btnLabel: "Confirm" });
 }
 
 async function handleTitle(text) {
     addUserMsg(text);
     clearInput();
-
-    const parts = text.split(/[:\u2014—]/);
-    if (parts.length >= 2) {
-        ebook.title = parts[0].trim();
-        ebook.subtitle = parts.slice(1).join(" — ").trim();
-    } else {
-        ebook.title = text;
-    }
-
-    await addBotMsg(`<strong>"${ebook.title}"</strong>${ebook.subtitle ? " — " + ebook.subtitle : ""}`, 200);
+    ebook.title = text;
     await askSubtitle();
 }
 
 async function askSubtitle() {
     step = "subtitle";
-    await addBotMsg("Add a <strong>subtitle</strong>? (Optional — skip if you included it above)", 300);
-    showTextInput("e.g. A Complete Guide to...", (text) => {
-        if (text) {
-            addUserMsg(text);
-            ebook.subtitle = text;
-        }
-        clearInput();
-        askAuthor();
-    }, { skipLabel: "Skip" });
+    const prompt = ebook.subtitle
+        ? `<strong>Confirm subtitle:</strong>`
+        : `<strong>Add a subtitle?</strong> (optional)`;
+    await addBotMsg(prompt, 300);
+    showTextInput("e.g. A Complete Guide to...", handleSubtitle, {
+        value: ebook.subtitle,
+        btnLabel: ebook.subtitle ? "Confirm" : "Add",
+        skipLabel: "Skip",
+    });
+}
+
+async function handleSubtitle(text) {
+    if (text) {
+        addUserMsg(text);
+        ebook.subtitle = text;
+    }
+    clearInput();
+    await askAuthor();
 }
 
 async function askAuthor() {
     step = "author";
     await addBotMsg("<strong>Author name</strong> for the cover?", 300);
-    showTextInput("Your name or pen name", handleAuthor);
+    showTextInput("Your name or pen name", handleAuthor, { btnLabel: "Confirm" });
 }
 
 async function handleAuthor(text) {
     addUserMsg(text);
     clearInput();
     ebook.author = text;
-    await askStyle();
+    await askQuickWins();
 }
 
 // =========================================================================
-// FLOW: Step 5 — Design style
+// FLOW: Step 4 — Quick wins (design style + brand)
 // =========================================================================
 
-async function askStyle() {
+async function askQuickWins() {
     step = "style";
 
     const swatches = {
@@ -463,14 +417,10 @@ window.selectStyle = async function(index) {
     await askBrand();
 };
 
-// =========================================================================
-// FLOW: Step 6 — Brand (logo + accent color)
-// =========================================================================
-
 async function askBrand() {
     step = "brand";
 
-    let html = "Almost done — add your <strong>logo</strong> and <strong>brand color</strong>, or skip to generate.";
+    let html = "Add your <strong>logo</strong> and <strong>brand color</strong>, or skip.";
     html += `<div style="margin-top:12px">
         <div class="file-upload-area">
             <label><span>Upload Logo</span>
@@ -492,9 +442,89 @@ async function askBrand() {
     await addBotMsg(html, 400);
 
     showButtons([
-        { label: "Generate my ebook!", cls: "btn-primary", onClick: generateEbook },
-        { label: "Skip — use defaults", cls: "btn-secondary", onClick: generateEbook },
+        { label: "Next — review chapters", cls: "btn-primary", onClick: () => { captureBrand(); showChapterReview(); } },
+        { label: "Skip", cls: "btn-secondary btn-small", onClick: () => { showChapterReview(); } },
     ]);
+}
+
+function captureBrand() {
+    const brandInput = document.getElementById("brand-name-input");
+    const accentInput = document.getElementById("accent-color-input");
+    if (brandInput) ebook.brand = brandInput.value.trim();
+    if (accentInput && ebook.design) ebook.design.colors.accent = accentInput.value;
+}
+
+// =========================================================================
+// FLOW: Step 5 — Chapter review
+// =========================================================================
+
+async function showChapterReview() {
+    step = "review";
+    clearInput();
+    captureBrand();
+
+    const totalWords = ebook.chapters.reduce((s, ch) => s + ch.content.split(/\s+/).filter(Boolean).length, 0);
+    await addBotMsg(
+        `Here are your <strong>${ebook.chapters.length} chapters</strong> (${totalWords.toLocaleString()} words). Edit titles or remove any you don't need:`,
+        400,
+    );
+
+    let html = '<div class="chapter-outline" id="chapter-outline">';
+    ebook.chapters.forEach((ch, i) => {
+        const wordCount = ch.content.split(/\s+/).filter(Boolean).length;
+        html += `<div class="outline-item" data-index="${i}">
+            <span class="outline-num">${i + 1}</span>
+            <input type="text" class="outline-title" value="${escapeAttr(ch.title)}"
+                onchange="window.updateChapterTitle(${i}, this.value)">
+            <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap">${wordCount}w</span>
+            <button class="btn-danger" onclick="window.removeChapter(${i})">x</button>
+        </div>`;
+    });
+    html += '</div>';
+
+    await addBotMsg(html, 0);
+
+    showButtons([
+        { label: "Generate my ebook!", cls: "btn-primary", onClick: () => { syncTitles(); generateEbook(); } },
+        { label: "+ Add chapter", cls: "btn-secondary btn-small", onClick: addChapterManually },
+    ]);
+}
+
+function syncTitles() {
+    document.querySelectorAll(".outline-title").forEach((input, i) => {
+        if (ebook.chapters[i]) ebook.chapters[i].title = input.value;
+    });
+}
+
+window.updateChapterTitle = function(i, val) {
+    if (ebook.chapters[i]) ebook.chapters[i].title = val;
+};
+
+window.removeChapter = function(i) {
+    ebook.chapters.splice(i, 1);
+    const el = document.querySelector(".chapter-outline");
+    if (el) el.closest(".msg").remove();
+    showChapterReview();
+};
+
+async function addChapterManually() {
+    syncTitles();
+    clearInput();
+    const num = ebook.chapters.length + 1;
+    await addBotMsg(`<strong>Title for Chapter ${num}?</strong>`, 300);
+    showTextInput("Chapter title...", async (title) => {
+        addUserMsg(title);
+        clearInput();
+        ebook.chapters.push({ title, content: "" });
+        const idx = ebook.chapters.length - 1;
+        await addBotMsg(`Paste the content for <strong>"${title}"</strong>.`, 300);
+        showTextArea("Paste chapter content...", async (content) => {
+            addUserMsg(`[${content.length} characters]`);
+            ebook.chapters[idx].content = content;
+            clearInput();
+            await showChapterReview();
+        }, "Save");
+    });
 }
 
 window.handleLogoUpload = async function(input) {
@@ -520,11 +550,6 @@ window.handleLogoUpload = async function(input) {
 // =========================================================================
 
 async function generateEbook() {
-    const brandInput = document.getElementById("brand-name-input");
-    const accentInput = document.getElementById("accent-color-input");
-    if (brandInput) ebook.brand = brandInput.value.trim();
-    if (accentInput && ebook.design) ebook.design.colors.accent = accentInput.value;
-
     clearInput();
     step = "generating";
 
