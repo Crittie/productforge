@@ -1,0 +1,30 @@
+{
+  "name": "Warm",
+  "description": "Luminous Pulse style — dark navy, amber accents, wellness layout",
+  "design": {
+    "colors": {
+      "primary": "#1a1a2e",
+      "secondary": "#B4A7D6",
+      "accent": "#F4C430",
+      "background": "#e8e8e8",
+      "muted": "#999999",
+      "line": "#2a3a5c",
+      "ink": "#FFFFFF",
+      "earth": "#e8e8e8"
+    },
+    "fonts": {
+      "heading": "Helvetica-Bold",
+      "body": "Helvetica",
+      "body_italic": "Helvetica-Oblique",
+      "mono": "Courier"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 72,
+      "right": 72,
+      "top": 60,
+      "bottom": 60
+    },
+    "layout": "warm"
+  }
+}

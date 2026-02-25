@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProductForge — Ebook Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>ProductForge</h1>
+            <p>Ebook PDF Generator</p>
+        </header>
+
+        <div class="chat-messages" id="chat-messages"></div>
+
+        <div class="chat-input-area" id="chat-input-area">
+            <div id="input-zone">
+                <!-- Dynamic: text input, style cards, file upload, etc. -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.__PRESETS__ = {{ presets | tojson }};
+    </script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

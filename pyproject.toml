@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "productforge"
+version = "0.1.0"
+description = "Digital product PDF generator — turn configuration into professional PDFs"
+requires-python = ">=3.10"
+dependencies = [
+    "reportlab>=4.0",
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.6",
+]
+
+[project.scripts]
+productforge = "productforge.web.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+productforge = ["presets/*.json"]

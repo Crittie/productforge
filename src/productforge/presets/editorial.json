@@ -1,0 +1,30 @@
+{
+  "name": "Editorial",
+  "description": "White Space style — parchment warmth, editorial layout, right-aligned typography",
+  "design": {
+    "colors": {
+      "background": "#F7F4EF",
+      "ink": "#111110",
+      "earth": "#2E2A25",
+      "muted": "#A09890",
+      "accent": "#8A9E8C",
+      "line": "#A09890",
+      "primary": "#111110",
+      "secondary": "#8A9E8C"
+    },
+    "fonts": {
+      "heading": "Italiana",
+      "body": "CrimsonPro",
+      "body_italic": "CrimsonProItalic",
+      "mono": "DMMono"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 90,
+      "right": 90,
+      "top": 80,
+      "bottom": 60
+    },
+    "layout": "editorial"
+  }
+}

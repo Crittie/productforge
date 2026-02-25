@@ -1,0 +1,30 @@
+{
+  "name": "Clean",
+  "description": "PM Prompts style — navy and orange, professional, centered layout",
+  "design": {
+    "colors": {
+      "primary": "#1a2744",
+      "secondary": "#2d3436",
+      "accent": "#e17055",
+      "background": "#ffffff",
+      "muted": "#b2bec3",
+      "line": "#f5f6fa",
+      "ink": "#2d3436",
+      "earth": "#2d3436"
+    },
+    "fonts": {
+      "heading": "Helvetica-Bold",
+      "body": "Helvetica",
+      "body_italic": "Helvetica-Oblique",
+      "mono": "Courier"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 50.4,
+      "right": 50.4,
+      "top": 50.4,
+      "bottom": 50.4
+    },
+    "layout": "clean"
+  }
+}

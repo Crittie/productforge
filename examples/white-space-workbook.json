@@ -1,0 +1,169 @@
+{
+  "title": "What AI Can\u2019t Do \u2014 a white space workbook",
+  "subtitle": "",
+  "author": "Christie Parrow",
+  "filename": "what-ai-cant-do.pdf",
+  "design": {
+    "colors": {
+      "background": "#F7F4EF",
+      "ink": "#111110",
+      "earth": "#2E2A25",
+      "muted": "#A09890",
+      "accent": "#8A9E8C",
+      "line": "#A09890",
+      "primary": "#111110",
+      "secondary": "#8A9E8C"
+    },
+    "fonts": {
+      "heading": "Italiana",
+      "body": "CrimsonPro",
+      "body_italic": "CrimsonProItalic",
+      "mono": "DMMono"
+    },
+    "page_size": "letter",
+    "margins": {
+      "left": 90,
+      "right": 90,
+      "top": 80,
+      "bottom": 60
+    },
+    "layout": "editorial"
+  },
+  "links": {},
+  "pages": [
+    {
+      "type": "cover",
+      "data": {
+        "title": "What AI Can\u2019t Do",
+        "subtitle": [
+          "a guided workbook for reclaiming",
+          "the skills only you have"
+        ],
+        "brand": "white space"
+      }
+    },
+    {
+      "type": "letter",
+      "data": {
+        "paragraphs": [
+          "This is not a productivity workbook.",
+          "",
+          "There are no goals to set, no habits to track, no 30-day challenge waiting at the end. You will not find a single affirmation in here.",
+          "",
+          "What you will find are six questions about the skills you already have \u2014 the ones that don\u2019t show up on a resume, the ones AI can\u2019t learn from a dataset, the ones you stopped calling skills because no one ever gave you credit for them.",
+          "",
+          "You know how to read a room. You know when to speak and when to let someone else figure it out. You know how to make people feel safe enough to say the honest thing. These are not soft skills. These are the only skills that still belong entirely to you.",
+          "",
+          "This workbook won\u2019t teach you anything. You already know all of it. It just asks you to write it down \u2014 in your own hand, in your own words \u2014 so you can stop forgetting what you bring.",
+          "",
+          "Use a pen. Take your time. There\u2019s no grade."
+        ],
+        "sign_off": "\u2014 Christie"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "01",
+        "prompt": "Name a skill you use every single day that has never appeared on your resume.",
+        "example": "I make tense rooms lighter. Not in a \u201clet me tell a joke\u201d way \u2014 more like I can feel when everyone\u2019s holding their breath, and I say the slightly funny, slightly honest thing that lets people exhale. I\u2019ve done this in every job I\u2019ve ever had. HR has never once asked about it in an interview."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "01",
+        "quote": "\u201cI write entirely to find out what I\u2019m thinking.\u201d \u2014 Joan Didion"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "02",
+        "prompt": "What do people come to you for that has nothing to do with your job title?",
+        "example": "People come to me when they need to say something out loud before they\u2019re ready to say it to the person it\u2019s actually about. I\u2019m the rehearsal. I\u2019m the \u201cdoes this sound crazy?\u201d phone call. I don\u2019t charge for this. I probably should."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "02",
+        "quote": "\u201cI am deliberate and afraid of nothing.\u201d \u2014 Audre Lorde"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "03",
+        "prompt": "What is something you are deeply good at that you have stopped calling a skill?",
+        "example": "Knowing when to lead and when to shut up. I can feel the exact moment a meeting needs someone to take over, and I can also feel when the best move is to let someone else figure it out while I just nod and hold the space. This isn\u2019t \u201cleadership\u201d the way a business book describes it. It\u2019s more like rhythm. I always know whose turn it is."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "03",
+        "quote": "\u201cThe thing you are most afraid to write. Write that.\u201d \u2014 Nayyirah Waheed"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "04",
+        "prompt": "What would you spend your time doing if no algorithm, job board, or LinkedIn post could ever see it?",
+        "example": "I would write. Not content \u2014 just writing. Letters to people I love, the kind where you actually say the thing instead of liking their post. I\u2019d sit somewhere warm with a pen and no strategy and make something that doesn\u2019t need a caption."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "04",
+        "quote": "\u201cThere is no greater agony than bearing an untold story inside you.\u201d \u2014 Maya Angelou"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "05",
+        "prompt": "Name one thing AI will never be able to do that you did this week.",
+        "example": "I made my friend laugh while she was crying. Not to fix it \u2014 I just said something so specific and stupid that she couldn\u2019t help it. Then she cried more. Then she laughed again. That\u2019s a skill. Try prompting ChatGPT to do that."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "05",
+        "quote": "\u201cThe only way out is through.\u201d \u2014 Robert Frost"
+      }
+    },
+    {
+      "type": "prompt",
+      "data": {
+        "number": "06",
+        "prompt": "Write one sentence that starts with \u201cI bring\u201d \u2014 and do not follow it with a job title.",
+        "example": "I bring the joke right before the hard conversation that makes everyone realize we\u2019re going to be fine."
+      }
+    },
+    {
+      "type": "writing",
+      "data": {
+        "prompt_number": "06",
+        "quote": "\u201cIf you do not breathe through writing, if you do not cry out in writing, then don\u2019t write.\u201d \u2014 Ana\u00efs Nin"
+      }
+    },
+    {
+      "type": "cta",
+      "data": {
+        "headline": [
+          "If six questions changed something,",
+          "the full workbook has fifty."
+        ],
+        "bridge": "you already know how to do this.",
+        "links": [
+          {"display": "whitespacejournal.com", "url": "https://whitespacejournal.com"},
+          {"display": "@whitespace.journal", "url": "https://instagram.com/whitespace.journal"}
+        ]
+      }
+    }
+  ]
+}
