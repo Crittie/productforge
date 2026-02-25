@@ -65,17 +65,149 @@ const EBOOK_STRUCTURES = {
     },
 };
 
+// --- Topic extraction ---
+function extractTopic(expertise) {
+    let t = expertise.trim();
+
+    // Strip leading filler: "I'm a ...", "I am a ...", "I've been ..."
+    t = t.replace(/^i(?:'m| am)\s+(?:a |an )?/i, "");
+    t = t.replace(/^i(?:'ve| have)\s+(?:been |spent )\s*/i, "");
+
+    // "I teach/help/coach people how to ..." → keep what follows "how to"
+    const howTo = t.match(/^i\s+\w+\s+(?:people\s+)?how\s+to\s+(.+)/i);
+    if (howTo) {
+        t = howTo[1].trim();
+    } else {
+        // "I do/teach/help/run/coach/train/focus on ..."
+        t = t.replace(/^i\s+(?:do|teach|help|run|coach|train|specialize|focus)\s+(?:on |in |people |with )?\s*/i, "");
+        // Strip bare leading "I " but keep the verb (so "I flip cars" → "flip cars")
+        t = t.replace(/^i\s+/i, "");
+    }
+
+    // "my expertise/background is ..."
+    t = t.replace(/^my\s+(?:expertise|background|experience|specialty|niche)\s+(?:is\s+(?:in\s+)?|in\s+)/i, "");
+
+    // "specializing in X" → keep X
+    const specMatch = t.match(/specializ(?:ing|e)\s+in\s+(.+)/i);
+    if (specMatch) t = specMatch[1].trim();
+
+    // Remove trailing clauses after comma, semicolon, period (NOT hyphens)
+    t = t.split(/[,;.]/)[0].trim();
+
+    // Remove trailing filler: "for 10 years", "since 2015", "I've done 200+"
+    t = t.replace(/\s+(?:for|since|over|and|i['']ve)\b.*$/i, "").trim();
+
+    // Strip leading gerund fillers
+    t = t.replace(/^(?:doing|running|building|making|creating|selling|buying|teaching|learning)\s+/i, "");
+
+    // Strip possessives: "their", "your", "my"
+    t = t.replace(/\b(?:their|your|my|his|her|our)\s+/gi, "");
+
+    // Strip "who ..." clauses
+    t = t.replace(/\s+who\b.*$/i, "").trim();
+
+    // Convert verb-object phrases to cleaner noun form:
+    // "flip cars" → "Car Flipping", "grow YouTube channels" → "YouTube Channel Growth"
+
+    // Verbs where the gerund adds meaning to the topic
+    const actionVerbs = {
+        flip: "Flipping", trade: "Trading", sell: "Selling", buy: "Buying",
+        cook: "Cooking", write: "Writing", invest: "Investing", fix: "Fixing",
+    };
+    // Verbs where a noun form suffix works better
+    const nounVerbs = {
+        grow: "Growth", manage: "Management", design: "Design", scale: "Scaling",
+    };
+    // Verbs where the object IS the topic — just drop the verb
+    const dropVerbs = new Set([
+        "start", "launch", "create", "build", "make", "learn", "master",
+    ]);
+
+    const words = t.split(/\s+/);
+    if (words.length >= 2) {
+        const verb = words[0].toLowerCase();
+        let obj = words.slice(1).join(" ");
+        // De-pluralize for cleaner titles ("cars" → "car", "businesses" → "business")
+        obj = obj.replace(/nesses$/i, "ness").replace(/ies$/i, "y").replace(/([^s])s$/i, "$1");
+
+        if (dropVerbs.has(verb)) {
+            t = obj;
+        } else if (actionVerbs[verb]) {
+            t = obj + " " + actionVerbs[verb];
+        } else if (nounVerbs[verb]) {
+            t = obj + " " + nounVerbs[verb];
+        }
+    }
+
+    // Title-case (respecting small words)
+    const smallWords = new Set(["a", "an", "the", "and", "or", "but", "in", "on", "of", "for", "to", "with"]);
+    t = t.split(/\s+/).filter(Boolean).map((w, i) => {
+        const lower = w.toLowerCase();
+        if (i > 0 && smallWords.has(lower)) return lower;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(" ");
+
+    // Fallback
+    if (!t || t.length < 3) {
+        t = expertise.split(/\s+/).slice(0, 4).join(" ");
+        t = t.replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    return t;
+}
+
+function extractAudience(audience) {
+    let a = audience.trim();
+
+    // "people who ...", "those who ..."
+    a = a.replace(/^(?:people|those|anyone|folks|individuals)\s+who\s+/i, "");
+
+    // "beginners who want to ..." → "Beginners"
+    const wantMatch = a.match(/^(.+?)\s+(?:who |that |looking |wanting |trying |struggling )/i);
+    if (wantMatch && wantMatch[1].length > 3) a = wantMatch[1].trim();
+
+    // Take first clause (comma, semicolon, period — NOT hyphen)
+    a = a.split(/[,;.]/)[0].trim();
+
+    // Cut before participial/descriptive phrases that make titles awkward
+    a = a.replace(/\s+(?:dealing|drowning|struggling|suffering|coping|worried|scared|confused|tired|sick)\s+(?:with|in|of|about)\b.*$/i, "").trim();
+
+    // Cap at 4 words max for title readability
+    const words = a.split(/\s+/);
+    if (words.length > 4) a = words.slice(0, 4).join(" ");
+
+    // Title-case
+    const smallWords = new Set(["a", "an", "the", "and", "or", "but", "in", "on", "of", "for", "to", "with"]);
+    a = a.split(/\s+/).filter(Boolean).map((w, i) => {
+        const lower = w.toLowerCase();
+        if (i > 0 && smallWords.has(lower)) return lower;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(" ");
+
+    if (!a || a.length < 3) {
+        a = audience.split(/\s+/).slice(0, 4).join(" ");
+        a = a.replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    return a;
+}
+
 // --- Title formula engine ---
 function generateTitles(expertise, audience, problem) {
-    const topic = expertise.split(/[,.]/)[ 0].trim();
-    const shortAudience = audience.split(/[,.]/)[ 0].trim();
+    const topic = extractTopic(expertise);
+    const reader = extractAudience(audience);
+
+    // Extract a short problem phrase
+    let pain = problem.split(/[,\-—.;]/)[0].trim();
+    pain = pain.replace(/^they\s+/i, "").replace(/^(?:don't|can't|won't|aren't)\s+/i, "");
+    pain = pain.charAt(0).toUpperCase() + pain.slice(1);
 
     return [
-        `The ${topic} Playbook: A No-BS Guide for ${shortAudience}`,
-        `${topic} Unlocked: Everything ${shortAudience} Need to Know`,
-        `From Zero to ${topic}: The Complete Guide`,
-        `The ${shortAudience}'s Guide to ${topic}`,
-        `${topic} Secrets: What ${shortAudience} Aren't Being Told`,
+        `The ${topic} Playbook: A Practical Guide for ${reader}`,
+        `${topic} Made Simple: What Every ${reader.replace(/s$/i, "")} Needs to Know`,
+        `The No-BS Guide to ${topic}`,
+        `${topic} Secrets: What Most ${reader} Get Wrong`,
+        `Master ${topic}: From Confused to Confident`,
     ];
 }
 
@@ -277,9 +409,6 @@ async function handleProblem(text) {
 
     step = "structure";
 
-    const topic = ebook.expertise.split(/[,.]/)[0].trim();
-    const audience = ebook.audience.split(/[,.]/)[0].trim();
-
     let html = '<div class="option-cards">';
     Object.entries(EBOOK_STRUCTURES).forEach(([key, struct], i) => {
         html += `<div class="option-card" data-key="${key}" onclick="window.selectStructure('${key}')">
@@ -305,8 +434,8 @@ window.selectStructure = async function(key) {
     addUserMsg(struct.label);
     ebook.concept = key;
 
-    const topic = ebook.expertise.split(/[,.]/)[0].trim();
-    const audience = ebook.audience.split(/[,.]/)[0].trim();
+    const topic = extractTopic(ebook.expertise);
+    const audience = extractAudience(ebook.audience);
 
     // Generate chapter outline
     const chapterTemplates = struct.chapters(topic, audience);
