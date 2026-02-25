@@ -405,6 +405,92 @@ body {
     transition: width 0.3s;
 }
 
+/* Option cards (structure/title selection) */
+.option-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.option-card {
+    padding: 12px 14px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.option-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+
+.option-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+
+.option-card .option-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.option-card .option-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* Chapter outline editor */
+.chapter-outline {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.outline-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
+.outline-num {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.outline-title {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+}
+
+.outline-title:focus {
+    border-color: var(--accent);
+}
+
 /* Scrollbar */
 .chat-messages::-webkit-scrollbar { width: 6px; }
 .chat-messages::-webkit-scrollbar-track { background: transparent; }
@@ -414,4 +500,5 @@ body {
 @media (max-width: 600px) {
     .style-cards { flex-direction: column; }
     .style-card { min-width: 100%; }
+    .outline-item { flex-wrap: wrap; }
 }

@@ -1,6 +1,7 @@
 /**
- * ProductForge — Chatbot-guided ebook generator.
- * State machine walks user through: topic → style → branding → chapters → generate.
+ * ProductForge — AI-guided ebook creator.
+ * Coaches the user through niche discovery, ebook concept,
+ * chapter outlines, and content development before generating.
  */
 
 const PRESETS = window.__PRESETS__ || [];
@@ -9,20 +10,74 @@ const inputZone = document.getElementById("input-zone");
 
 // Ebook state
 const ebook = {
+    expertise: "",
+    audience: "",
+    problem: "",
+    concept: "",
     title: "",
     subtitle: "",
     author: "",
     brand: "",
     filename: "ebook.pdf",
     design: null,
-    logoPath: "",       // server path after upload
-    logoFilename: "",   // display name
-    accentColor: "",    // user override
-    chapters: [],       // [{title, content}]
+    logoPath: "",
+    logoFilename: "",
+    chapters: [],       // [{title, guideQuestion, content}]
 };
 
-// Steps: greeting → topic → style → brand → chapters → confirm → generate
 let step = "greeting";
+
+// --- Ebook structure templates ---
+const EBOOK_STRUCTURES = {
+    "how-to": {
+        label: "How-To Guide",
+        desc: "Step-by-step playbook your reader can follow",
+        chapters: (topic, audience) => [
+            { title: `Why ${topic} Matters Right Now`, guide: `What's changed recently that makes ${topic} urgent or important? Why should ${audience} care today vs. a year ago?` },
+            { title: "The Biggest Mistakes (And How to Avoid Them)", guide: `What are the top 3-5 mistakes you see ${audience} making with ${topic}? What do they get wrong that costs them time or money?` },
+            { title: "The Foundation: Getting Started Right", guide: `What does a complete beginner need to know first? What's the minimum viable setup or knowledge to get started?` },
+            { title: "The Core Process: Step by Step", guide: `Walk through your process. If you were teaching someone over coffee, what would the steps be? Include specific numbers, tools, or frameworks you use.` },
+            { title: "Advanced Strategies That Separate Pros from Amateurs", guide: `What do you know that most people in this space don't? What's the insight that took you years to learn?` },
+            { title: "Your Action Plan: What to Do This Week", guide: `Give the reader a concrete 7-day action plan. What should they do on day 1? Day 3? By the end of the week?` },
+        ],
+    },
+    "lessons": {
+        label: "Lessons & Insights",
+        desc: "Wisdom from your experience — stories + takeaways",
+        chapters: (topic, audience) => [
+            { title: "How I Got Into This", guide: `What's your origin story with ${topic}? What drew you in? Keep it honest — readers connect with real stories, not polished ones.` },
+            { title: "The Lesson That Changed Everything", guide: `What was your biggest breakthrough or turning point? What did you believe before that turned out to be wrong?` },
+            { title: "What Nobody Tells You", guide: `What's the unfiltered truth about ${topic} that gurus and courses leave out? What do you wish someone had told you?` },
+            { title: "The Framework I Use Every Day", guide: `Do you have a mental model, checklist, or decision framework? Walk through how you think about ${topic} when making real decisions.` },
+            { title: `What I'd Tell ${audience} Starting Today`, guide: `If you could sit down with someone just starting out, what would you say? Be specific — not generic advice, but the actual moves you'd recommend.` },
+        ],
+    },
+    "resource": {
+        label: "Ultimate Resource Guide",
+        desc: "Everything your reader needs to know in one place",
+        chapters: (topic, audience) => [
+            { title: `${topic}: The Complete Overview`, guide: `Give a clear, jargon-free explanation of what ${topic} is and why it matters. Assume the reader is smart but new to this.` },
+            { title: "Key Concepts You Need to Understand", guide: `What are the 5-8 most important terms, ideas, or principles? Explain each one simply with a real-world example.` },
+            { title: "Tools, Resources & Recommendations", guide: `What tools, apps, books, or resources do you actually use and recommend? Be specific — names, prices, why you chose them.` },
+            { title: "Common Questions Answered", guide: `What questions do ${audience} ask you most often? Answer each one directly and honestly.` },
+            { title: "Next Steps & Where to Go Deeper", guide: `What should the reader do after finishing this guide? Where can they learn more, practice, or connect with others?` },
+        ],
+    },
+};
+
+// --- Title formula engine ---
+function generateTitles(expertise, audience, problem) {
+    const topic = expertise.split(/[,.]/)[ 0].trim();
+    const shortAudience = audience.split(/[,.]/)[ 0].trim();
+
+    return [
+        `The ${topic} Playbook: A No-BS Guide for ${shortAudience}`,
+        `${topic} Unlocked: Everything ${shortAudience} Need to Know`,
+        `From Zero to ${topic}: The Complete Guide`,
+        `The ${shortAudience}'s Guide to ${topic}`,
+        `${topic} Secrets: What ${shortAudience} Aren't Being Told`,
+    ];
+}
 
 // --- Init ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -88,18 +143,14 @@ function showTextInput(placeholder, onSubmit) {
     input.type = "text";
     input.placeholder = placeholder;
     input.addEventListener("keydown", e => {
-        if (e.key === "Enter" && input.value.trim()) {
-            onSubmit(input.value.trim());
-        }
+        if (e.key === "Enter" && input.value.trim()) onSubmit(input.value.trim());
     });
-
     const btn = document.createElement("button");
     btn.className = "btn btn-primary";
     btn.textContent = "Send";
     btn.addEventListener("click", () => {
         if (input.value.trim()) onSubmit(input.value.trim());
     });
-
     inputZone.appendChild(input);
     inputZone.appendChild(btn);
     input.focus();
@@ -107,33 +158,32 @@ function showTextInput(placeholder, onSubmit) {
 
 function showTextArea(placeholder, onSubmit, btnLabel) {
     clearInput();
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;flex-direction:column;gap:8px;width:100%";
     const ta = document.createElement("textarea");
     ta.placeholder = placeholder;
-    ta.rows = 2;
+    ta.rows = 3;
     ta.addEventListener("input", () => {
         ta.style.height = "auto";
-        ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+        ta.style.height = Math.min(ta.scrollHeight, 160) + "px";
     });
-
     const btn = document.createElement("button");
     btn.className = "btn btn-primary";
     btn.textContent = btnLabel || "Send";
+    btn.style.alignSelf = "flex-end";
     btn.addEventListener("click", () => {
         if (ta.value.trim()) onSubmit(ta.value.trim());
     });
-
-    inputZone.appendChild(ta);
-    inputZone.appendChild(btn);
+    wrap.appendChild(ta);
+    wrap.appendChild(btn);
+    inputZone.appendChild(wrap);
     ta.focus();
 }
 
 function showButtons(buttons) {
     clearInput();
     const wrap = document.createElement("div");
-    wrap.style.display = "flex";
-    wrap.style.gap = "8px";
-    wrap.style.flexWrap = "wrap";
-    wrap.style.width = "100%";
+    wrap.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;width:100%";
     buttons.forEach(({ label, cls, onClick }) => {
         const btn = document.createElement("button");
         btn.className = `btn ${cls || "btn-primary"}`;
@@ -144,32 +194,316 @@ function showButtons(buttons) {
     inputZone.appendChild(wrap);
 }
 
-// --- Chat flow ---
+function showOptionCards(options, onSelect) {
+    clearInput();
+    // Options appear as bot message cards
+    let html = '<div class="option-cards">';
+    options.forEach((opt, i) => {
+        html += `<div class="option-card" data-index="${i}" onclick="window.__selectOption(${i})">
+            <div class="option-label">${opt.label}</div>
+            ${opt.desc ? `<div class="option-desc">${opt.desc}</div>` : ""}
+        </div>`;
+    });
+    html += '</div>';
+    addBotMsg(html, 0);
 
-async function startChat() {
-    await addBotMsg("Hey! I'm <strong>ProductForge</strong> — I'll help you create a professional ebook PDF in a few steps.", 400);
-    await addBotMsg("Let's start. <strong>What's your ebook about?</strong> Give me the title and a brief description of what it covers.", 600);
-    step = "topic";
-    showTextInput("e.g. The Car Flipper's Playbook — how to flip cars for profit", handleTopic);
+    window.__selectOption = (i) => {
+        document.querySelectorAll(".option-card").forEach((el, j) => {
+            el.classList.toggle("selected", j === i);
+        });
+        onSelect(options[i], i);
+    };
 }
 
-async function handleTopic(text) {
+// =========================================================================
+// CHAT FLOW
+// =========================================================================
+
+async function startChat() {
+    await addBotMsg("Hey! I'm <strong>ProductForge</strong> — I help you create professional ebooks from scratch.", 400);
+    await addBotMsg("I'll ask you a few questions to understand your expertise and who you're writing for. Then I'll help you structure your ebook, develop each chapter, and generate a polished PDF.", 700);
+    await addBotMsg("Let's start with the big picture. <strong>What do you know really well?</strong> What's your area of expertise — the thing people come to you for advice on?", 600);
+
+    step = "expertise";
+    showTextArea(
+        "e.g. I flip cars for profit, I've done 200+ flips in 3 years\ne.g. I'm a nutritionist specializing in gut health\ne.g. I teach people how to start e-commerce businesses",
+        handleExpertise,
+        "That's me"
+    );
+}
+
+// --- Step 1: Expertise ---
+async function handleExpertise(text) {
     addUserMsg(text);
     clearInput();
+    ebook.expertise = text;
 
-    // Try to extract a title from the input
-    const parts = text.split(/[—\-:]/);
+    await addBotMsg(`Interesting — <strong>${text}</strong>. That's solid expertise.`, 400);
+    await addBotMsg("Now, <strong>who are you writing this for?</strong> Describe your ideal reader — the specific person who needs your knowledge most.", 600);
+
+    step = "audience";
+    showTextArea(
+        "e.g. Beginners who want to start flipping cars but don't know where to begin\ne.g. Women over 40 dealing with bloating and fatigue\ne.g. Side hustlers looking to quit their 9-5",
+        handleAudience,
+        "That's my reader"
+    );
+}
+
+// --- Step 2: Audience ---
+async function handleAudience(text) {
+    addUserMsg(text);
+    clearInput();
+    ebook.audience = text;
+
+    await addBotMsg(`Got it — you're writing for <strong>${text}</strong>.`, 300);
+    await addBotMsg("One more thing: <strong>What's the #1 problem or frustration</strong> your reader has that this ebook will solve?", 500);
+
+    step = "problem";
+    showTextArea(
+        "e.g. They waste money buying the wrong cars because they don't know what to look for\ne.g. They've tried every diet but nothing works for their gut issues\ne.g. They're stuck in analysis paralysis and never actually launch",
+        handleProblem,
+        "That's the problem"
+    );
+}
+
+// --- Step 3: Problem → Suggest ebook concepts ---
+async function handleProblem(text) {
+    addUserMsg(text);
+    clearInput();
+    ebook.problem = text;
+
+    await addBotMsg("Perfect. Now I have a clear picture. Let me think about the best approach for your ebook...", 500);
+    await addBotMsg("Based on what you told me, here are <strong>3 ebook formats</strong> that would work well. Pick the one that fits your style:", 800);
+
+    step = "structure";
+
+    const topic = ebook.expertise.split(/[,.]/)[0].trim();
+    const audience = ebook.audience.split(/[,.]/)[0].trim();
+
+    let html = '<div class="option-cards">';
+    Object.entries(EBOOK_STRUCTURES).forEach(([key, struct], i) => {
+        html += `<div class="option-card" data-key="${key}" onclick="window.selectStructure('${key}')">
+            <div class="option-label">${struct.label}</div>
+            <div class="option-desc">${struct.desc}</div>
+        </div>`;
+    });
+    html += '</div>';
+
+    await addBotMsg(html, 0);
+    clearInput();
+}
+
+window.selectStructure = async function(key) {
+    if (step !== "structure") return;
+    const struct = EBOOK_STRUCTURES[key];
+    if (!struct) return;
+
+    document.querySelectorAll(".option-card").forEach(el => {
+        el.classList.toggle("selected", el.dataset.key === key);
+    });
+
+    addUserMsg(struct.label);
+    ebook.concept = key;
+
+    const topic = ebook.expertise.split(/[,.]/)[0].trim();
+    const audience = ebook.audience.split(/[,.]/)[0].trim();
+
+    // Generate chapter outline
+    const chapterTemplates = struct.chapters(topic, audience);
+    ebook.chapters = chapterTemplates.map(ch => ({
+        title: ch.title,
+        guideQuestion: ch.guide,
+        content: "",
+    }));
+
+    await addBotMsg(`Great choice — <strong>${struct.label}</strong>. Now let's pick a title.`, 400);
+    await suggestTitles();
+};
+
+// --- Step 4: Title workshop ---
+async function suggestTitles() {
+    step = "title";
+
+    const titles = generateTitles(ebook.expertise, ebook.audience, ebook.problem);
+
+    let html = "Here are some title ideas based on your topic and audience. <strong>Pick one, or write your own:</strong>";
+    html += '<div class="option-cards">';
+    titles.forEach((t, i) => {
+        html += `<div class="option-card" onclick="window.selectTitle(${i})">
+            <div class="option-label">${t}</div>
+        </div>`;
+    });
+    html += '</div>';
+
+    await addBotMsg(html, 600);
+
+    window.__titles = titles;
+    showTextInput("Or type your own title...", handleCustomTitle);
+}
+
+window.selectTitle = async function(index) {
+    if (step !== "title") return;
+    const title = window.__titles[index];
+
+    document.querySelectorAll(".option-card").forEach((el, i) => {
+        el.classList.toggle("selected", i === index);
+    });
+
+    handleTitleSelected(title);
+};
+
+async function handleCustomTitle(text) {
+    handleTitleSelected(text);
+}
+
+async function handleTitleSelected(title) {
+    if (step !== "title") return;
+    step = "title-done";
+
+    addUserMsg(title);
+    clearInput();
+
+    // Parse title and subtitle
+    const parts = title.split(/[:\u2014—]/);
     if (parts.length >= 2) {
         ebook.title = parts[0].trim();
         ebook.subtitle = parts.slice(1).join(" — ").trim();
     } else {
-        ebook.title = text;
+        ebook.title = title;
+        ebook.subtitle = "";
     }
 
-    await addBotMsg(`Great — <strong>"${ebook.title}"</strong>${ebook.subtitle ? " — " + ebook.subtitle : ""}. Sounds good!`, 400);
-    await addBotMsg("Who's the author? (This goes on the cover page.)", 500);
+    await addBotMsg(`<strong>"${ebook.title}"</strong>${ebook.subtitle ? " — " + ebook.subtitle : ""}. Love it.`, 400);
+    await showChapterOutline();
+}
+
+// --- Step 5: Chapter outline review ---
+async function showChapterOutline() {
+    step = "outline";
+
+    let html = "Here's the chapter outline I've built for you. <strong>You can edit titles, reorder, or remove chapters:</strong>";
+    html += '<div class="chapter-outline" id="chapter-outline">';
+    ebook.chapters.forEach((ch, i) => {
+        html += `<div class="outline-item" data-index="${i}">
+            <span class="outline-num">${i + 1}</span>
+            <input type="text" class="outline-title" value="${escapeAttr(ch.title)}"
+                onchange="window.updateOutlineTitle(${i}, this.value)">
+            <button class="btn-danger" onclick="window.removeOutlineChapter(${i})">x</button>
+        </div>`;
+    });
+    html += '</div>';
+    html += '<div style="margin-top:8px;font-size:0.82rem;color:var(--muted)">Don\'t worry about getting it perfect — you can always adjust.</div>';
+
+    await addBotMsg(html, 600);
+
+    showButtons([
+        { label: "Looks good — let's write!", cls: "btn-primary", onClick: startContentDev },
+        { label: "+ Add a chapter", cls: "btn-secondary btn-small", onClick: addOutlineChapter },
+    ]);
+}
+
+window.updateOutlineTitle = function(index, value) {
+    if (ebook.chapters[index]) ebook.chapters[index].title = value;
+};
+
+window.removeOutlineChapter = function(index) {
+    ebook.chapters.splice(index, 1);
+    // Re-render outline
+    const el = document.querySelector(".chapter-outline");
+    if (el) el.closest(".msg").remove();
+    showChapterOutline();
+};
+
+async function addOutlineChapter() {
+    // Sync current outline titles
+    document.querySelectorAll(".outline-title").forEach((input, i) => {
+        if (ebook.chapters[i]) ebook.chapters[i].title = input.value;
+    });
+    ebook.chapters.push({
+        title: `Chapter ${ebook.chapters.length + 1}`,
+        guideQuestion: "What do you want to cover in this chapter? Share your key points.",
+        content: "",
+    });
+    const el = document.querySelector(".chapter-outline");
+    if (el) el.closest(".msg").remove();
+    await showChapterOutline();
+}
+
+// --- Step 6: Guided content development ---
+let currentChapterIndex = 0;
+
+async function startContentDev() {
+    // Sync outline titles
+    document.querySelectorAll(".outline-title").forEach((input, i) => {
+        if (ebook.chapters[i]) ebook.chapters[i].title = input.value;
+    });
+
+    clearInput();
+    currentChapterIndex = 0;
+
+    await addBotMsg("Now let's fill in your chapters. I'll guide you through each one with a question to help draw out your best content.", 500);
+    await addBotMsg("Write as much or as little as you want. <strong>Think of it like explaining to a friend</strong> — natural, conversational. I'll handle the formatting.", 600);
+
+    await promptForChapter(0);
+}
+
+async function promptForChapter(index) {
+    if (index >= ebook.chapters.length) {
+        await finishContent();
+        return;
+    }
+
+    currentChapterIndex = index;
+    step = "content";
+    const ch = ebook.chapters[index];
+
+    const progress = `<div class="progress-bar"><div class="fill" style="width:${((index) / ebook.chapters.length * 100).toFixed(0)}%"></div></div>`;
+
+    await addBotMsg(
+        `${progress}<strong>Chapter ${index + 1} of ${ebook.chapters.length}: "${ch.title}"</strong><br><br>` +
+        `${ch.guideQuestion}`,
+        500
+    );
+
+    showTextArea(
+        "Write your thoughts here... separate ideas with blank lines for paragraphs",
+        (text) => handleChapterContent(index, text),
+        index < ebook.chapters.length - 1 ? "Next chapter →" : "Finish writing"
+    );
+}
+
+async function handleChapterContent(index, text) {
+    addUserMsg(text.length > 100 ? text.substring(0, 100) + "..." : text);
+    clearInput();
+
+    ebook.chapters[index].content = text;
+
+    const encouragements = [
+        "Great stuff. That's real, specific knowledge — exactly what makes ebooks valuable.",
+        "This is good. Your reader is going to highlight this section.",
+        "Nice — you can tell this comes from real experience, not theory.",
+        "Solid. The specificity here is what separates good ebooks from generic ones.",
+        "Love the detail. This is the kind of thing people pay for.",
+    ];
+
+    await addBotMsg(encouragements[index % encouragements.length], 400);
+
+    // Move to next chapter
+    await promptForChapter(index + 1);
+}
+
+// --- Step 7: Content complete → Author + Style + Brand ---
+async function finishContent() {
     step = "author";
-    showTextInput("Your name", handleAuthor);
+    const filledCount = ebook.chapters.filter(ch => ch.content.trim()).length;
+
+    await addBotMsg(
+        `All ${filledCount} chapters written! Your ebook is taking shape.`,
+        400,
+    );
+    await addBotMsg("Almost done. <strong>What name should go on the cover?</strong>", 500);
+
+    showTextInput("Your name or pen name", handleAuthor);
 }
 
 async function handleAuthor(text) {
@@ -177,37 +511,36 @@ async function handleAuthor(text) {
     clearInput();
     ebook.author = text;
 
-    await addBotMsg(`Got it, <strong>${ebook.author}</strong>.`, 300);
+    await addBotMsg(`<strong>${ebook.author}</strong> — perfect.`, 300);
     await askStyle();
 }
 
+// --- Step 8: Design style ---
 async function askStyle() {
-    // Build style card HTML
+    step = "style";
+
     const swatches = {
-        "Editorial": ["#F7F4EF", "#111110", "#8A9E8C", "#A09890"],
-        "Clean": ["#1a2744", "#e17055", "#ffffff", "#f5f6fa"],
-        "Warm": ["#1a1a2e", "#F4C430", "#B4A7D6", "#e8e8e8"],
+        "Editorial": { colors: ["#F7F4EF", "#111110", "#8A9E8C", "#A09890"], vibe: "Elegant, literary, lots of white space" },
+        "Clean": { colors: ["#1a2744", "#e17055", "#ffffff", "#f5f6fa"], vibe: "Bold, professional, business-ready" },
+        "Warm": { colors: ["#1a1a2e", "#F4C430", "#B4A7D6", "#e8e8e8"], vibe: "Dark & moody, premium feel" },
     };
 
-    let cardsHtml = '<div class="style-cards">';
+    let html = "Pick a design style for your ebook:";
+    html += '<div class="style-cards">';
     PRESETS.forEach((p, i) => {
-        const colors = swatches[p.name] || ["#333", "#666", "#999", "#ccc"];
-        cardsHtml += `
-            <div class="style-card" data-index="${i}" onclick="selectStyle(${i})">
-                <div class="style-name">${p.name}</div>
-                <div class="style-desc">${p.description || ""}</div>
-                <div class="style-swatch">
-                    ${colors.map(c => `<span class="swatch" style="background:${c}"></span>`).join("")}
-                </div>
+        const info = swatches[p.name] || { colors: ["#333"], vibe: "" };
+        html += `<div class="style-card" data-index="${i}" onclick="window.selectStyle(${i})">
+            <div class="style-name">${p.name}</div>
+            <div class="style-desc">${info.vibe}</div>
+            <div class="style-swatch">
+                ${info.colors.map(c => `<span class="swatch" style="background:${c}"></span>`).join("")}
             </div>
-        `;
+        </div>`;
     });
-    cardsHtml += '</div>';
+    html += '</div>';
 
-    await addBotMsg("Pick a design style for your ebook:" + cardsHtml, 500);
-    step = "style";
+    await addBotMsg(html, 500);
     clearInput();
-    // Input comes from card click
 }
 
 window.selectStyle = async function(index) {
@@ -216,59 +549,52 @@ window.selectStyle = async function(index) {
     if (!preset) return;
 
     ebook.design = structuredClone(preset.design);
-
-    // Highlight selected card
     document.querySelectorAll(".style-card").forEach((el, i) => {
         el.classList.toggle("selected", i === index);
     });
 
     addUserMsg(preset.name);
-    await addBotMsg(`Nice — <strong>${preset.name}</strong> style selected.`, 300);
+    await addBotMsg(`<strong>${preset.name}</strong> — nice choice.`, 300);
     await askBrand();
 };
 
+// --- Step 9: Branding ---
 async function askBrand() {
     step = "brand";
 
-    let html = "Now let's add your branding. Upload a <strong>logo</strong> (optional) and set a <strong>brand name</strong> and <strong>accent color</strong>.";
-    html += `
-        <div style="margin-top:12px">
-            <div class="file-upload-area">
-                <label>
-                    <span>Upload Logo</span>
-                    <input type="file" id="logo-upload" accept="image/*" onchange="handleLogoUpload(this)">
-                </label>
-                <span class="file-name" id="logo-filename">No file chosen</span>
-            </div>
-            <div class="color-pick-row">
-                <label>Brand name:
-                    <input type="text" id="brand-name-input" placeholder="${ebook.author}" value=""
-                        style="width:140px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:0.85rem;">
-                </label>
-                <label>Accent:
-                    <input type="color" id="accent-color-input" value="${ebook.design?.colors?.accent || '#8A9E8C'}">
-                </label>
-            </div>
+    let html = "Last step — your branding. Add a <strong>logo</strong> (optional) and pick an <strong>accent color</strong>.";
+    html += `<div style="margin-top:12px">
+        <div class="file-upload-area">
+            <label><span>Upload Logo</span>
+                <input type="file" id="logo-upload" accept="image/*" onchange="window.handleLogoUpload(this)">
+            </label>
+            <span class="file-name" id="logo-filename">No file chosen</span>
         </div>
-    `;
+        <div class="color-pick-row">
+            <label>Brand name:
+                <input type="text" id="brand-name-input" placeholder="${escapeAttr(ebook.author)}" value=""
+                    style="width:140px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:0.85rem;">
+            </label>
+            <label>Accent:
+                <input type="color" id="accent-color-input" value="${ebook.design?.colors?.accent || '#8A9E8C'}">
+            </label>
+        </div>
+    </div>`;
 
-    const msgEl = await addBotMsg(html, 500);
+    await addBotMsg(html, 500);
 
     showButtons([
-        { label: "Continue", cls: "btn-primary", onClick: finishBrand },
-        { label: "Skip branding", cls: "btn-secondary", onClick: finishBrand },
+        { label: "Generate my ebook!", cls: "btn-primary", onClick: confirmAndGenerate },
+        { label: "Skip — use defaults", cls: "btn-secondary", onClick: confirmAndGenerate },
     ]);
 }
 
 window.handleLogoUpload = async function(input) {
     const file = input.files[0];
     if (!file) return;
-
     document.getElementById("logo-filename").textContent = file.name;
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
         const resp = await fetch("/api/upload-logo", { method: "POST", body: formData });
         const data = await resp.json();
@@ -281,160 +607,39 @@ window.handleLogoUpload = async function(input) {
     }
 };
 
-async function finishBrand() {
+// --- Step 10: Generate ---
+async function confirmAndGenerate() {
     const brandInput = document.getElementById("brand-name-input");
     const accentInput = document.getElementById("accent-color-input");
+    if (brandInput) ebook.brand = brandInput.value.trim();
+    if (accentInput && ebook.design) ebook.design.colors.accent = accentInput.value;
 
-    ebook.brand = brandInput ? brandInput.value.trim() : "";
-    if (accentInput && ebook.design) {
-        ebook.design.colors.accent = accentInput.value;
-    }
-
-    const brandText = ebook.brand || ebook.author;
-    addUserMsg(`Brand: ${brandText}${ebook.logoFilename ? " + logo" : ""}`);
-    clearInput();
-
-    await addBotMsg("Now for the content. Add your <strong>chapters</strong> — give each one a title and its content.", 500);
-    await showChapterEditor();
-}
-
-// --- Chapter editor ---
-
-async function showChapterEditor() {
-    step = "chapters";
-
-    // Start with one empty chapter
-    if (ebook.chapters.length === 0) {
-        ebook.chapters.push({ title: "", content: "" });
-    }
-
-    renderChapterUI();
-}
-
-function renderChapterUI() {
-    // Build chapter editor in a bot message
-    let html = '<div class="chapter-editor" id="chapter-editor">';
-
-    ebook.chapters.forEach((ch, i) => {
-        html += `
-            <div class="chapter-block" data-index="${i}">
-                <div class="ch-header">
-                    <span class="ch-num">Chapter ${i + 1}</span>
-                    ${ebook.chapters.length > 1 ?
-                        `<button class="btn-danger" onclick="removeChapter(${i})">Remove</button>` : ""}
-                </div>
-                <input type="text" placeholder="Chapter title"
-                    value="${escapeHtml(ch.title)}"
-                    onchange="updateChapter(${i}, 'title', this.value)">
-                <textarea placeholder="Chapter content — write your paragraphs here (separate with blank lines)"
-                    onchange="updateChapter(${i}, 'content', this.value)">${escapeHtml(ch.content)}</textarea>
-            </div>
-        `;
-    });
-
-    html += '</div>';
-
-    // Remove any existing editor message
-    const existing = document.getElementById("chapter-editor-msg");
-    if (existing) existing.remove();
-
-    const div = document.createElement("div");
-    div.className = "msg bot";
-    div.id = "chapter-editor-msg";
-    div.innerHTML = html;
-    messagesEl.appendChild(div);
-    scrollBottom();
-
-    showButtons([
-        { label: "+ Add Chapter", cls: "btn-secondary btn-small", onClick: addChapter },
-        { label: "Done — Generate my ebook", cls: "btn-primary", onClick: confirmGenerate },
-    ]);
-}
-
-window.updateChapter = function(index, field, value) {
-    if (ebook.chapters[index]) {
-        ebook.chapters[index][field] = value;
-    }
-};
-
-window.removeChapter = function(index) {
-    ebook.chapters.splice(index, 1);
-    const existing = document.getElementById("chapter-editor-msg");
-    if (existing) existing.remove();
-    renderChapterUI();
-};
-
-function addChapter() {
-    // Sync current input values before re-render
-    syncChapterInputs();
-    ebook.chapters.push({ title: "", content: "" });
-    const existing = document.getElementById("chapter-editor-msg");
-    if (existing) existing.remove();
-    renderChapterUI();
-}
-
-function syncChapterInputs() {
-    const blocks = document.querySelectorAll(".chapter-block");
-    blocks.forEach((block, i) => {
-        if (!ebook.chapters[i]) return;
-        const titleInput = block.querySelector('input[type="text"]');
-        const contentInput = block.querySelector("textarea");
-        if (titleInput) ebook.chapters[i].title = titleInput.value;
-        if (contentInput) ebook.chapters[i].content = contentInput.value;
-    });
-}
-
-// --- Confirm & Generate ---
-
-async function confirmGenerate() {
-    syncChapterInputs();
-
-    // Filter out empty chapters
-    ebook.chapters = ebook.chapters.filter(ch => ch.title.trim() || ch.content.trim());
-
-    if (ebook.chapters.length === 0) {
-        await addBotMsg("You need at least one chapter with some content. Add a title and some text, then try again.", 300);
-        return;
-    }
-
-    const chapterCount = ebook.chapters.length;
-    addUserMsg(`${chapterCount} chapter${chapterCount > 1 ? "s" : ""} ready`);
-    clearInput();
-
-    // Build summary
-    let summary = `Here's your ebook:<br><br>`;
-    summary += `<strong>${ebook.title}</strong>`;
-    if (ebook.subtitle) summary += `<br><em>${ebook.subtitle}</em>`;
-    summary += `<br>By ${ebook.author || "Unknown"}`;
-    summary += `<br>${chapterCount} chapter${chapterCount > 1 ? "s" : ""}`;
-    summary += `<br>Style: ${ebook.design?.layout || "editorial"}`;
-    if (ebook.logoFilename) summary += `<br>Logo: ${ebook.logoFilename}`;
-
-    await addBotMsg(summary, 400);
-    await addBotMsg("Ready to generate?", 300);
-
-    step = "confirm";
-    showButtons([
-        { label: "Generate PDF", cls: "btn-primary", onClick: generateEbook },
-        { label: "Edit chapters", cls: "btn-secondary", onClick: () => { step = "chapters"; showChapterEditor(); } },
-    ]);
-}
-
-async function generateEbook() {
     clearInput();
     step = "generating";
 
-    const msgEl = await addBotMsg('Generating your ebook...<div class="progress-bar"><div class="fill" id="gen-progress" style="width:10%"></div></div>', 200);
+    // Summary
+    const chCount = ebook.chapters.filter(ch => ch.content.trim()).length;
+    await addBotMsg(
+        `Building your ebook:<br><br>` +
+        `<strong>${ebook.title}</strong>${ebook.subtitle ? "<br><em>" + ebook.subtitle + "</em>" : ""}<br>` +
+        `By ${ebook.author}<br>` +
+        `${chCount} chapters &middot; ${ebook.design?.layout || "editorial"} style` +
+        (ebook.logoFilename ? `<br>Logo: ${ebook.logoFilename}` : ""),
+        400,
+    );
 
-    // Animate progress
+    const msgEl = await addBotMsg(
+        'Generating your PDF...<div class="progress-bar"><div class="fill" id="gen-progress" style="width:10%"></div></div>',
+        300,
+    );
+
     const progressEl = document.getElementById("gen-progress");
     let progress = 10;
-    const progressInterval = setInterval(() => {
+    const interval = setInterval(() => {
         progress = Math.min(progress + 8, 90);
         if (progressEl) progressEl.style.width = progress + "%";
     }, 200);
 
-    // Build the config
     const config = buildConfig();
 
     try {
@@ -444,8 +649,7 @@ async function generateEbook() {
             body: JSON.stringify(config),
         });
 
-        clearInterval(progressInterval);
-
+        clearInterval(interval);
         if (!resp.ok) {
             const err = await resp.json();
             throw new Error(err.error || "Generation failed");
@@ -456,25 +660,21 @@ async function generateEbook() {
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
 
-        // Replace progress with download button
         await addBotMsg(
-            `Your ebook is ready! <strong>${ebook.chapters.length} chapters, ` +
-            `${ebook.design?.layout} style.</strong><br>` +
-            `<button class="download-btn" onclick="downloadFile('${url}', '${config.filename}')">` +
-            `Download PDF</button>`,
-            400
+            `Your ebook is ready!<br><br>` +
+            `<strong>"${ebook.title}"</strong> — ${chCount} chapters, ${ebook.design?.layout} style.<br>` +
+            `<button class="download-btn" onclick="window.downloadFile('${url}', '${escapeAttr(config.filename)}')">Download PDF</button>`,
+            500,
         );
 
-        await addBotMsg("Want to make another ebook? Just refresh the page.", 600);
+        await addBotMsg("Want to create another ebook? Just refresh the page. Your content ideas are only going to get better from here.", 700);
         step = "done";
         clearInput();
-
     } catch (err) {
-        clearInterval(progressInterval);
-        await addBotMsg(`Something went wrong: <strong>${err.message}</strong><br>Check your content and try again.`, 300);
+        clearInterval(interval);
+        await addBotMsg(`Something went wrong: <strong>${err.message}</strong>`, 300);
         showButtons([
-            { label: "Try again", cls: "btn-primary", onClick: generateEbook },
-            { label: "Edit chapters", cls: "btn-secondary", onClick: () => { step = "chapters"; showChapterEditor(); } },
+            { label: "Try again", cls: "btn-primary", onClick: confirmAndGenerate },
         ]);
     }
 }
@@ -488,30 +688,28 @@ window.downloadFile = function(url, filename) {
     a.remove();
 };
 
-// --- Build PDF config from ebook state ---
-
+// --- Build PDF config ---
 function buildConfig() {
     const pages = [];
 
-    // Cover page
+    // Cover
     const coverData = {
         title: ebook.title,
         subtitle: ebook.subtitle ? [ebook.subtitle] : [],
         brand: ebook.brand || ebook.author,
         author: ebook.author,
     };
-    if (ebook.logoPath) {
-        coverData.logo_path = ebook.logoPath;
-    }
+    if (ebook.logoPath) coverData.logo_path = ebook.logoPath;
     pages.push({ type: "cover", data: coverData });
 
-    // TOC page (if 2+ chapters)
-    if (ebook.chapters.length >= 2) {
+    // TOC
+    const filledChapters = ebook.chapters.filter(ch => ch.content.trim());
+    if (filledChapters.length >= 2) {
         pages.push({
             type: "toc",
             data: {
                 heading: "What\u2019s Inside",
-                entries: ebook.chapters.map((ch, i) => ({
+                entries: filledChapters.map((ch, i) => ({
                     number: String(i + 1),
                     title: ch.title || `Chapter ${i + 1}`,
                     description: "",
@@ -521,12 +719,12 @@ function buildConfig() {
     }
 
     // Chapters
-    ebook.chapters.forEach((ch, i) => {
+    filledChapters.forEach((ch, i) => {
         const paragraphs = ch.content
-            .split(/\n\n+/)                    // Split on blank lines → paragraphs
+            .split(/\n\n+/)
             .flatMap(p => {
                 const trimmed = p.trim();
-                return trimmed ? [trimmed, ""] : [];  // Add spacing between
+                return trimmed ? [trimmed, ""] : [];
             });
 
         pages.push({
@@ -539,7 +737,7 @@ function buildConfig() {
         });
     });
 
-    // CTA page
+    // CTA
     pages.push({
         type: "cta",
         data: {
@@ -550,16 +748,11 @@ function buildConfig() {
         },
     });
 
-    const filename = ebook.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "") + ".pdf";
-
     return {
         title: ebook.title,
         subtitle: ebook.subtitle,
         author: ebook.author,
-        filename: filename,
+        filename: ebook.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + ".pdf",
         design: ebook.design,
         links: {},
         pages: pages,
@@ -567,9 +760,12 @@ function buildConfig() {
 }
 
 // --- Utility ---
-
 function escapeHtml(str) {
     const div = document.createElement("div");
     div.textContent = str || "";
     return div.innerHTML;
+}
+
+function escapeAttr(str) {
+    return (str || "").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;");
 }
