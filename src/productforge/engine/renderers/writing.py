@@ -83,13 +83,13 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     y = ctx.H - 1.0 * inch
 
     if heading:
-        ctx.c.setFont("Helvetica-Bold", 14)
+        ctx.c.setFont(ctx.font("heading"), 14)
         ctx.c.setFillColor(ctx.color("ink"))
         ctx.c.drawString(ctx.margin_left, y, heading)
         y -= 0.5 * inch
 
     if prompt_number:
-        ctx.c.setFont("Helvetica", 10)
+        ctx.c.setFont(ctx.font("body"), 10)
         ctx.c.setFillColor(ctx.color("muted"))
         ctx.c.drawString(ctx.margin_left, y, f"Prompt {prompt_number}")
         y -= 0.3 * inch
@@ -116,7 +116,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     y = ctx.H - 80
 
     if prompt_number:
-        ctx.c.setFont("Helvetica", 11)
+        ctx.c.setFont(ctx.font("body"), 11)
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.drawString(ctx.margin_left, y, f"Day {prompt_number}")
         y -= 30
@@ -126,16 +126,16 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Quote at bottom
     if quote:
-        ctx.c.setFont("Helvetica-Oblique", 8.5)
+        ctx.c.setFont(ctx.font("body_italic"), 8.5)
         ctx.c.setFillColor(ctx.color("secondary"))
-        lines = simpleSplit(quote, "Helvetica-Oblique", 8.5, 260)
+        lines = simpleSplit(quote, ctx.font("body_italic"), 8.5, 260)
         qy = ctx.margin_bottom + 10
         for line in reversed(lines):
             ctx.c.drawString(ctx.margin_left, qy, line)
             qy += 13
 
     # Footer
-    ctx.c.setFont("Helvetica", 7)
+    ctx.c.setFont(ctx.font("body"), 7)
     ctx.c.setFillColor(ctx.color("muted"))
     ctx.c.drawCentredString(ctx.W / 2, 36, config.author or "")
 

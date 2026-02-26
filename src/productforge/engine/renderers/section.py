@@ -23,14 +23,14 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     y = ctx.H / 2 + 30
 
     # Title
-    ctx.c.setFont("Helvetica-Bold", 28)
+    ctx.c.setFont(ctx.font("heading"), 28)
     ctx.c.setFillColor(ctx.color("background"))
     ctx.c.drawCentredString(ctx.W / 2, y, title)
     y -= 40
 
     # Subtitle
     if subtitle:
-        ctx.c.setFont("Helvetica", 13)
+        ctx.c.setFont(ctx.font("body"), 13)
         ctx.c.setFillColor(ctx.color("secondary"))
         ctx.c.drawCentredString(ctx.W / 2, y, subtitle)
         y -= 30
@@ -43,10 +43,10 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Epigraph
     if epigraph:
-        ctx.c.setFont("Helvetica-Oblique", 11)
+        ctx.c.setFont(ctx.font("body_italic"), 11)
         ctx.c.setFillColor(ctx.color("muted"))
         y = ctx.draw_text_wrapped(
-            epigraph, "Helvetica-Oblique", 11, ctx.color("muted"),
+            epigraph, ctx.font("body_italic"), 11, ctx.color("muted"),
             ctx.margin_left + 40, y,
             max_width=ctx.text_area_w - 80,
         )

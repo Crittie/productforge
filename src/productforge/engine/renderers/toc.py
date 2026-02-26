@@ -28,7 +28,7 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     y = ctx.H - 1.2 * inch
 
-    ctx.c.setFont("Helvetica-Bold", 22)
+    ctx.c.setFont(ctx.font("heading"), 22)
     ctx.c.setFillColor(ctx.color("ink"))
     ctx.c.drawString(ctx.margin_left, y, heading)
     y -= 0.7 * inch
@@ -49,14 +49,14 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
         # Title — wrapped
         ty = ctx.draw_text_wrapped(
-            title, "Helvetica-Bold", 12, ctx.color("ink"),
+            title, ctx.font("heading"), 12, ctx.color("ink"),
             text_x, y, max_width=text_max_w, line_height_factor=1.4,
         )
 
         # Description
         if desc:
             ty = ctx.draw_text_wrapped(
-                desc, "Helvetica", 10, ctx.color("muted"),
+                desc, ctx.font("body"), 10, ctx.color("muted"),
                 text_x, ty + 2, max_width=text_max_w, line_height_factor=1.4,
             )
 
@@ -71,7 +71,7 @@ def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
             fill_color=ctx.color("primary"),
         )
         ctx.c.setFillColor(ctx.color("background"))
-        ctx.c.setFont("Helvetica-Bold", 12)
+        ctx.c.setFont(ctx.font("heading"), 12)
         ctx.c.drawString(ctx.margin_left + 0.25 * inch, y - 0.35 * inch, footer_text)
 
     ctx.draw_page_number(style="center")

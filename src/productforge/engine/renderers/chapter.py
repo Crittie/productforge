@@ -155,7 +155,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     # Chapter title — auto-fitted
     if chapter_title:
         y = ctx.draw_title_fitted(
-            chapter_title, "Helvetica-Bold", max_size=20, min_size=14,
+            chapter_title, ctx.font("heading"), max_size=20, min_size=14,
             color=ctx.color("ink"), x=ctx.margin_left, y=y,
             max_width=max_w,
         )
@@ -229,7 +229,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Chapter number label
     if chapter_number:
-        ctx.c.setFont("Helvetica", 11)
+        ctx.c.setFont(ctx.font("body"), 11)
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.drawString(ctx.margin_left, y, f"CHAPTER {chapter_number}")
         y -= 30
@@ -237,7 +237,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     # Chapter title
     if chapter_title:
         y = ctx.draw_title_fitted(
-            chapter_title, "Helvetica-Bold", max_size=20, min_size=14,
+            chapter_title, ctx.font("heading"), max_size=20, min_size=14,
             color=ctx.color("background"), x=ctx.margin_left, y=y,
             max_width=max_w,
         )
@@ -276,7 +276,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Footer
     if config.author:
-        ctx.c.setFont("Helvetica", 7)
+        ctx.c.setFont(ctx.font("body"), 7)
         ctx.c.setFillColor(ctx.color("muted"))
         ctx.c.drawCentredString(ctx.W / 2, 36, config.author)
 

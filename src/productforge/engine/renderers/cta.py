@@ -95,7 +95,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     y = ctx.H - 1.2 * inch
 
     # Headline
-    ctx.c.setFont("Helvetica-Bold", 24)
+    ctx.c.setFont(ctx.font("heading"), 24)
     ctx.c.setFillColor(ctx.color("ink"))
     for line in headline:
         ctx.c.drawString(ctx.margin_left, y, line)
@@ -109,7 +109,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
             y -= 8
         else:
             y = ctx.draw_text_wrapped(
-                para, "Helvetica", 11, ctx.color("ink"),
+                para, ctx.font("body"), 11, ctx.color("ink"),
                 ctx.margin_left, y,
             )
             y -= 4
@@ -123,7 +123,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
         label = link.get("label", "")
 
         if label:
-            ctx.c.setFont("Helvetica-Bold", 11)
+            ctx.c.setFont(ctx.font("heading"), 11)
             ctx.c.setFillColor(ctx.color("accent"))
             ctx.c.drawString(ctx.margin_left, y, label)
             y -= 16
@@ -134,7 +134,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
             fill_color=ctx.color("primary"),
         )
         ctx.c.setFillColor(ctx.color("background"))
-        ctx.c.setFont("Helvetica-Bold", 12)
+        ctx.c.setFont(ctx.font("heading"), 12)
         ctx.c.drawCentredString(ctx.W / 2, y - 0.35 * inch, display)
         if url:
             ctx.draw_link(
@@ -146,7 +146,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     # Sign off
     if sign_off:
         y -= 10
-        ctx.c.setFont("Helvetica-Bold", 10)
+        ctx.c.setFont(ctx.font("heading"), 10)
         ctx.c.setFillColor(ctx.color("ink"))
         ctx.c.drawString(ctx.margin_left, y, sign_off)
 
@@ -167,7 +167,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     y = ctx.H / 2 + 60
 
     # Headline
-    ctx.c.setFont("Helvetica-Bold", 22)
+    ctx.c.setFont(ctx.font("heading"), 22)
     ctx.c.setFillColor(ctx.color("background"))
     for line in headline:
         ctx.c.drawCentredString(ctx.W / 2, y, line)
@@ -176,20 +176,20 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     # Bridge
     if bridge:
         y -= 10
-        ctx.c.setFont("Helvetica-Oblique", 13)
+        ctx.c.setFont(ctx.font("body_italic"), 13)
         ctx.c.setFillColor(ctx.color("secondary"))
         ctx.c.drawCentredString(ctx.W / 2, y, bridge)
         y -= 40
 
     # Links
-    ctx.c.setFont("Helvetica", 10)
+    ctx.c.setFont(ctx.font("body"), 10)
     ctx.c.setFillColor(ctx.color("accent"))
     for link in links:
         display = link.get("display", "")
         url = link.get("url", "")
         ctx.c.drawCentredString(ctx.W / 2, y, display)
         if url:
-            text_width = ctx.c.stringWidth(display, "Helvetica", 10)
+            text_width = ctx.c.stringWidth(display, ctx.font("body"), 10)
             ctx.draw_link(
                 ctx.W / 2 - text_width / 2, y - 3,
                 text_width, 14, url,

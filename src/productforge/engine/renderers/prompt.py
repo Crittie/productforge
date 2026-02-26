@@ -95,14 +95,14 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
     # Title
     if title:
-        ctx.c.setFont("Helvetica-Bold", 14)
+        ctx.c.setFont(ctx.font("heading"), 14)
         ctx.c.setFillColor(ctx.color("ink"))
         ctx.c.drawString(ctx.margin_left + 0.6 * inch, y - 0.2 * inch, title)
 
     # Time saved
     if time_saved:
         ctx.c.setFillColor(ctx.color("accent"))
-        ctx.c.setFont("Helvetica-Bold", 9)
+        ctx.c.setFont(ctx.font("heading"), 9)
         ctx.c.drawString(
             ctx.margin_left + 0.6 * inch, y - 0.42 * inch,
             f"Time Saved: {time_saved}",
@@ -141,23 +141,23 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
     # Example
     if example:
-        ctx.c.setFont("Helvetica", 10)
+        ctx.c.setFont(ctx.font("body"), 10)
         ctx.c.setFillColor(ctx.color("ink"))
         y = ctx.draw_text_wrapped(
-            example, "Helvetica", 10, ctx.color("ink"),
+            example, ctx.font("body"), 10, ctx.color("ink"),
             ctx.margin_left, y,
         )
         y -= 0.15 * inch
 
     # Pro tip
     if pro_tip:
-        ctx.c.setFont("Helvetica-Bold", 9)
+        ctx.c.setFont(ctx.font("heading"), 9)
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.drawString(ctx.margin_left, y, "Pro Tip: ")
 
         import textwrap
         tip_lines = textwrap.wrap(pro_tip, 82)
-        ctx.c.setFont("Helvetica", 9)
+        ctx.c.setFont(ctx.font("body"), 9)
         ctx.c.setFillColor(ctx.color("ink"))
         if tip_lines:
             ctx.c.drawString(ctx.margin_left + 45, y, tip_lines[0])
@@ -187,27 +187,27 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Number label
     if number:
-        ctx.c.setFont("Helvetica", 11)
+        ctx.c.setFont(ctx.font("body"), 11)
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.drawString(ctx.margin_left, y, f"DAY {number}")
         y -= 30
 
     # Prompt
     if prompt_text:
-        ctx.c.setFont("Helvetica-Bold", 20)
+        ctx.c.setFont(ctx.font("heading"), 20)
         ctx.c.setFillColor(ctx.color("background"))
         y = ctx.draw_text_wrapped(
-            prompt_text, "Helvetica-Bold", 20, ctx.color("background"),
+            prompt_text, ctx.font("heading"), 20, ctx.color("background"),
             ctx.margin_left, y, line_height_factor=1.5,
         )
         y -= 20
 
     # Example
     if example:
-        ctx.c.setFont("Helvetica", 11)
+        ctx.c.setFont(ctx.font("body"), 11)
         ctx.c.setFillColor(ctx.color("secondary"))
         y = ctx.draw_text_wrapped(
-            example, "Helvetica", 11, ctx.color("secondary"),
+            example, ctx.font("body"), 11, ctx.color("secondary"),
             ctx.margin_left, y,
         )
 

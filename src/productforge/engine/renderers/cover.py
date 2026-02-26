@@ -155,14 +155,14 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
             1.5 * inch, 0.35 * inch, 3, fill=1, stroke=0,
         )
         ctx.c.setFillColor(ctx.color("background"))
-        ctx.c.setFont("Helvetica-Bold", 11)
+        ctx.c.setFont(ctx.font("heading"), 11)
         ctx.c.drawString(ctx.margin_left + 0.25 * inch, accent_y + 26, badge)
 
     # Title — large, left-aligned, below accent line
     title_y = accent_y - 30
     title_text = " ".join(title) if isinstance(title, list) else title
     y = ctx.draw_title_fitted(
-        title_text, "Helvetica-Bold", max_size=36, min_size=22,
+        title_text, ctx.font("heading"), max_size=36, min_size=22,
         color=ctx.color("background"), x=ctx.margin_left, y=title_y,
         max_width=ctx.text_area_w,
     )
@@ -170,7 +170,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     # Subtitle
     if subtitles:
         y -= 12
-        ctx.c.setFont("Helvetica", 13)
+        ctx.c.setFont(ctx.font("body"), 13)
         ctx.c.setFillColor(ctx.color("muted"))
         for line in subtitles:
             ctx.c.drawString(ctx.margin_left, y, line)
@@ -179,7 +179,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     # Author + accent line at bottom
     if author:
         ctx.c.setFillColor(ctx.color("muted"))
-        ctx.c.setFont("Helvetica", 11)
+        ctx.c.setFont(ctx.font("body"), 11)
         ctx.c.drawString(ctx.margin_left, 1.5 * inch, f"By {author}")
         ctx.c.setStrokeColor(ctx.color("accent"))
         ctx.c.setLineWidth(2)
@@ -221,7 +221,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     y = ctx.H / 2 + 50
     title_text = " ".join(title) if isinstance(title, list) else title
     y = ctx.draw_title_fitted(
-        title_text, "Helvetica-Bold", max_size=32, min_size=18,
+        title_text, ctx.font("heading"), max_size=32, min_size=18,
         color=ctx.color("background"), x=ctx.margin_left, y=y,
         align="center",
     )
@@ -234,7 +234,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Subtitle
     y -= 24
-    ctx.c.setFont("Helvetica", 13)
+    ctx.c.setFont(ctx.font("body"), 13)
     ctx.c.setFillColor(ctx.color("muted"))
     for line in subtitles:
         ctx.c.drawCentredString(ctx.W / 2, y, line)
@@ -242,7 +242,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Brand at bottom
     if brand:
-        ctx.c.setFont("Helvetica", 10)
+        ctx.c.setFont(ctx.font("body"), 10)
         ctx.c.setFillColor(ctx.color("muted"))
         ctx.c.drawCentredString(ctx.W / 2, 70, brand)
 

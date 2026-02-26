@@ -80,26 +80,26 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     y = ctx.H - 1.2 * inch
 
     if heading:
-        ctx.c.setFont("Helvetica-Bold", 22)
+        ctx.c.setFont(ctx.font("heading"), 22)
         ctx.c.setFillColor(ctx.color("ink"))
         ctx.c.drawString(ctx.margin_left, y, heading)
         y -= 0.6 * inch
 
-    ctx.c.setFont("Helvetica", 11)
+    ctx.c.setFont(ctx.font("body"), 11)
     ctx.c.setFillColor(ctx.color("ink"))
     for para in paragraphs:
         if para == "":
             y -= 8
         else:
             y = ctx.draw_text_wrapped(
-                para, "Helvetica", 11, ctx.color("ink"),
+                para, ctx.font("body"), 11, ctx.color("ink"),
                 ctx.margin_left, y,
             )
             y -= 4
 
     if sign_off:
         y -= 16
-        ctx.c.setFont("Helvetica-Bold", 10)
+        ctx.c.setFont(ctx.font("heading"), 10)
         ctx.c.setFillColor(ctx.color("ink"))
         ctx.c.drawString(ctx.margin_left, y, sign_off)
 
@@ -123,7 +123,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     y = ctx.H - 100
 
     if heading:
-        ctx.c.setFont("Helvetica-Bold", 22)
+        ctx.c.setFont(ctx.font("heading"), 22)
         ctx.c.setFillColor(ctx.color("background"))
         ctx.c.drawCentredString(ctx.W / 2, y, heading)
         y -= 40
@@ -133,14 +133,14 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
             y -= 10
         else:
             y = ctx.draw_text_wrapped(
-                para, "Helvetica", 11, ctx.color("background"),
+                para, ctx.font("body"), 11, ctx.color("background"),
                 ctx.margin_left, y,
             )
             y -= 6
 
     if sign_off:
         y -= 20
-        ctx.c.setFont("Helvetica-Oblique", 11)
+        ctx.c.setFont(ctx.font("body_italic"), 11)
         ctx.c.setFillColor(ctx.color("secondary"))
         ctx.c.drawString(ctx.margin_left, y, sign_off)
 
