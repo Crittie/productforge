@@ -131,7 +131,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     from reportlab.lib.units import inch
 
     # Full-page gradient — seamless primary to secondary
-    ctx._page_num += 1
+    ctx.start_page(None)
     primary = ctx.color("primary")
     secondary = ctx.color("secondary")
     _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H, primary, secondary, steps=100)
@@ -201,7 +201,7 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     logo_path = data.get("logo_path", "")
 
     # Full-page gradient — seamless dark transition
-    ctx._page_num += 1
+    ctx.start_page(None)
     primary = ctx.color("primary")
     secondary = ctx.color("secondary")
     _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H, primary, secondary, steps=100)

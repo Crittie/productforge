@@ -85,7 +85,13 @@ async def upload_logo(file: UploadFile = File(...)) -> JSONResponse:
 
 
 def _extract_pdf(path: str) -> str:
-    """Extract text from a PDF file, detecting headings via font size."""
+    """Extract text from a PDF file, detecting headings and preserving line structure.
+
+    Uses a two-pass approach:
+    1. Find the dominant body font size
+    2. Process line-by-line, merging only full-width wrapping lines
+       while keeping short lines (bullet points, list items) separate
+    """
     if _fitz is None:
         raise RuntimeError("PDF support requires pymupdf: pip install pymupdf")
     doc = _fitz.open(path)
@@ -101,22 +107,29 @@ def _extract_pdf(path: str) -> str:
                         size_counts[s] = size_counts.get(s, 0) + len(span["text"])
     body_size = max(size_counts, key=size_counts.get) if size_counts else 12.0
 
-    # Second pass: extract text, marking larger/bold text as headings
-    paragraphs: list[str] = []
+    # Second pass: extract text line-by-line, preserving structure
+    # Each entry: (text, is_heading, is_full_width)
+    raw_lines: list[tuple[str, bool, bool]] = []
+
     for page in doc:
         for block in page.get_text("dict")["blocks"]:
-            lines_in_block = block.get("lines", [])
-            if not lines_in_block:
+            block_lines = block.get("lines", [])
+            if not block_lines:
                 continue
-            # Collect text for this block and check if it's a heading
-            block_text_parts: list[str] = []
-            is_heading = False
-            for line in lines_in_block:
+
+            # Block width from bounding box
+            bbox = block.get("bbox", (0, 0, 0, 0))
+            block_width = bbox[2] - bbox[0]
+
+            for line in block_lines:
+                text_parts: list[str] = []
+                is_heading = False
+
                 for span in line["spans"]:
                     text = span["text"].strip()
                     if not text:
                         continue
-                    block_text_parts.append(text)
+                    text_parts.append(text)
                     sz = round(span["size"], 1)
                     font = span.get("font", "")
                     if sz > body_size + 1.5 or (
@@ -124,15 +137,44 @@ def _extract_pdf(path: str) -> str:
                         and len(text) < 80
                     ):
                         is_heading = True
-            full = " ".join(block_text_parts).strip()
-            if not full:
-                continue
-            if is_heading and len(full) < 120:
-                paragraphs.append(f"# {full}")
-            else:
-                paragraphs.append(full)
+
+                full_text = " ".join(text_parts).strip()
+                if not full_text:
+                    continue
+
+                # Check if this line fills the block width (wrapping text)
+                line_bbox = line.get("bbox", (0, 0, 0, 0))
+                line_width = line_bbox[2] - line_bbox[0]
+                is_full_width = block_width > 50 and (line_width / block_width) > 0.85
+
+                raw_lines.append((full_text, is_heading, is_full_width))
 
     doc.close()
+
+    # Merge consecutive full-width body lines into paragraphs,
+    # but keep short lines (list items, bullet points) separate
+    paragraphs: list[str] = []
+    i = 0
+    while i < len(raw_lines):
+        text, is_heading, is_full_width = raw_lines[i]
+
+        if is_heading and len(text) < 120:
+            paragraphs.append(f"# {text}")
+            i += 1
+            continue
+
+        # For body text: merge consecutive full-width lines
+        merged = text
+        while (is_full_width and i + 1 < len(raw_lines)
+               and not raw_lines[i + 1][1]):  # next is not heading
+            i += 1
+            next_text, _, next_full_width = raw_lines[i]
+            merged += " " + next_text
+            is_full_width = next_full_width
+
+        paragraphs.append(merged)
+        i += 1
+
     return "\n\n".join(paragraphs)
 
 

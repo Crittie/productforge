@@ -278,12 +278,11 @@ class RenderContext:
     # -- Page management ------------------------------------------------------
 
     def new_page(self) -> None:
-        """End the current page and start a new one."""
+        """End the current page (calls showPage). Does not increment page number."""
         self.c.showPage()
-        self._page_num += 1
 
     def start_page(self, background: str | None = "background") -> None:
-        """Start a new page with optional background fill."""
+        """Start a new page with optional background fill. Increments page counter."""
         self._page_num += 1
         if background:
             self.fill_background(background)
