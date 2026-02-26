@@ -1,16 +1,17 @@
 """Cover page renderer.
 
 Reference: White Space generate_workbook.py lines 209-234.
-Supports editorial (right-aligned), clean (centered), and warm (centered dark) layouts.
+Supports editorial (right-aligned), clean (full-bleed), and warm (centered dark) layouts.
 """
 
 from __future__ import annotations
 
 import os
 
+from reportlab.lib.colors import Color
 from reportlab.lib.utils import ImageReader
 
-from ..context import RenderContext
+from ..context import RenderContext, hex_to_color
 from ..models import ProductConfig
 
 
@@ -35,6 +36,22 @@ def _draw_logo(ctx: RenderContext, logo_path: str, x: float, y: float,
         return y - draw_h - 16
     except Exception:
         return y
+
+
+def _draw_gradient_rect(ctx: RenderContext, x: float, y: float,
+                        w: float, h: float,
+                        color_top: Color, color_bottom: Color,
+                        steps: int = 60) -> None:
+    """Draw a vertical gradient rectangle from color_top to color_bottom."""
+    step_h = h / steps
+    for i in range(steps):
+        t = i / (steps - 1) if steps > 1 else 0
+        r = color_top.red + (color_bottom.red - color_top.red) * t
+        g = color_top.green + (color_bottom.green - color_top.green) * t
+        b = color_top.blue + (color_bottom.blue - color_top.blue) * t
+        ctx.c.setFillColor(Color(r, g, b))
+        ctx.c.rect(x, y + h - (i + 1) * step_h, w, step_h + 0.5,
+                   fill=1, stroke=0)
 
 
 def render(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
@@ -102,9 +119,7 @@ def _render_editorial(ctx: RenderContext, data: dict, config: ProductConfig) -> 
 
 
 def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
-    """Navy background, centered title, badge, accent line."""
-    ctx.start_page("primary")
-
+    """Full-bleed cover with gradient, corner logo, bold title."""
     title = data.get("title", config.title)
     subtitles = data.get("subtitle", [])
     if isinstance(subtitles, str):
@@ -115,48 +130,58 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
     from reportlab.lib.units import inch
 
-    # Logo — top center
-    if logo_path:
-        _draw_logo(ctx, logo_path, 0, ctx.H - 0.8 * inch,
-                   align="center", max_w=180, max_h=80)
+    # Full-bleed primary background
+    ctx.start_page("primary")
 
-    # Accent line
+    # Gradient overlay — darker at bottom for depth
+    primary = ctx.color("primary")
+    secondary = ctx.color("secondary")
+    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H * 0.55, secondary, primary)
+
+    # Accent bar — full width, creates visual anchor
+    accent_y = ctx.H - 2.2 * inch
     ctx.c.setFillColor(ctx.color("accent"))
-    ctx.c.rect(0, ctx.H - 2.5 * inch, ctx.W, 0.15 * inch, fill=1, stroke=0)
+    ctx.c.rect(0, accent_y, ctx.W, 4, fill=1, stroke=0)
 
-    # Badge
+    # Logo — top-left corner, tasteful size
+    if logo_path:
+        _draw_logo(ctx, logo_path, ctx.margin_left, ctx.H - 0.6 * inch,
+                   align="left", max_w=60, max_h=60)
+
+    # Badge — below accent bar
     if badge:
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.roundRect(
-            ctx.margin_left, ctx.H - 3.1 * inch,
+            ctx.margin_left, accent_y - 0.55 * inch,
             1.5 * inch, 0.35 * inch, 3, fill=1, stroke=0,
         )
         ctx.c.setFillColor(ctx.color("background"))
         ctx.c.setFont("Helvetica-Bold", 11)
         ctx.c.drawString(
             ctx.margin_left + 0.25 * inch,
-            ctx.H - 3.0 * inch,
+            accent_y - 0.45 * inch,
             badge,
         )
 
-    # Title — auto-fitted
-    y = ctx.H - 3.9 * inch
+    # Title — large, left-aligned, below accent bar
+    title_y = accent_y - 0.8 * inch
     title_text = " ".join(title) if isinstance(title, list) else title
     y = ctx.draw_title_fitted(
-        title_text, "Helvetica-Bold", max_size=34, min_size=20,
-        color=ctx.color("background"), x=ctx.margin_left, y=y,
+        title_text, "Helvetica-Bold", max_size=36, min_size=22,
+        color=ctx.color("background"), x=ctx.margin_left, y=title_y,
+        max_width=ctx.text_area_w,
     )
 
-    # Subtitle
+    # Subtitle — lighter weight below title
     if subtitles:
-        ctx.c.setFont("Helvetica", 14)
+        y -= 12
+        ctx.c.setFont("Helvetica", 13)
         ctx.c.setFillColor(ctx.color("muted"))
-        y -= 10
         for line in subtitles:
             ctx.c.drawString(ctx.margin_left, y, line)
             y -= 20
 
-    # Author at bottom
+    # Author + accent line at bottom
     if author:
         ctx.c.setFillColor(ctx.color("muted"))
         ctx.c.setFont("Helvetica", 11)
@@ -172,9 +197,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
 
 def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
-    """Dark navy background, centered title, warm amber accents."""
-    ctx.start_page("primary")
-
+    """Dark background, centered title, warm amber accents."""
     title = data.get("title", config.title)
     subtitles = data.get("subtitle", [])
     if isinstance(subtitles, str):
@@ -182,24 +205,44 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     brand = data.get("brand", "")
     logo_path = data.get("logo_path", "")
 
-    # Logo — centered above title
+    # Full-bleed dark background
+    ctx.start_page("primary")
+
+    # Subtle gradient — lighter in center for depth
+    primary = ctx.color("primary")
+    secondary = ctx.color("secondary")
+    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H * 0.4, secondary, primary)
+
+    # Accent lines — top and bottom framing
+    ctx.c.setStrokeColor(ctx.color("accent"))
+    ctx.c.setLineWidth(1.5)
+    ctx.c.line(60, ctx.H - 50, ctx.W - 60, ctx.H - 50)
+    ctx.c.line(60, 50, ctx.W - 60, 50)
+
+    # Logo — top-left corner
     if logo_path:
-        _draw_logo(ctx, logo_path, 0, ctx.H / 2 + 140,
-                   align="center", max_w=180, max_h=95)
+        _draw_logo(ctx, logo_path, 60, ctx.H - 60,
+                   align="left", max_w=60, max_h=60)
 
     # Title — centered, auto-fitted
-    y = ctx.H / 2 + 40
+    y = ctx.H / 2 + 50
     title_text = " ".join(title) if isinstance(title, list) else title
     y = ctx.draw_title_fitted(
-        title_text, "Helvetica-Bold", max_size=30, min_size=18,
+        title_text, "Helvetica-Bold", max_size=32, min_size=18,
         color=ctx.color("background"), x=ctx.margin_left, y=y,
         align="center",
     )
 
+    # Accent dash under title
+    y -= 12
+    ctx.c.setStrokeColor(ctx.color("accent"))
+    ctx.c.setLineWidth(2)
+    ctx.c.line(ctx.W / 2 - 30, y, ctx.W / 2 + 30, y)
+
     # Subtitle
-    y -= 10
+    y -= 24
     ctx.c.setFont("Helvetica", 13)
-    ctx.c.setFillColor(ctx.color("secondary"))
+    ctx.c.setFillColor(ctx.color("muted"))
     for line in subtitles:
         ctx.c.drawCentredString(ctx.W / 2, y, line)
         y -= 20
@@ -208,6 +251,6 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     if brand:
         ctx.c.setFont("Helvetica", 10)
         ctx.c.setFillColor(ctx.color("muted"))
-        ctx.c.drawCentredString(ctx.W / 2, 60, brand)
+        ctx.c.drawCentredString(ctx.W / 2, 70, brand)
 
     ctx.new_page()

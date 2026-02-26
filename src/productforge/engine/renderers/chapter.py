@@ -39,6 +39,18 @@ def _text_height(text: str, font: str, size: float, max_width: float,
 
 
 # ---------------------------------------------------------------------------
+# Accent sidebar (shared design element)
+# ---------------------------------------------------------------------------
+
+def _draw_sidebar(ctx: RenderContext, color_name: str = "accent",
+                  width: float = 3, x_offset: float = 28) -> None:
+    """Draw a thin vertical accent sidebar on the left edge."""
+    ctx.c.setFillColor(ctx.color(color_name))
+    ctx.c.rect(x_offset, ctx.margin_bottom, width,
+               ctx.H - ctx.margin_top - ctx.margin_bottom, fill=1, stroke=0)
+
+
+# ---------------------------------------------------------------------------
 # Editorial layout
 # ---------------------------------------------------------------------------
 
@@ -68,9 +80,15 @@ def _render_editorial(ctx: RenderContext, data: dict, config: ProductConfig) -> 
 
     # Chapter title
     if chapter_title:
-        y = ctx.draw_text_wrapped(
-            chapter_title, ctx.font("heading"), 20, ctx.color("ink"),
-            ctx.margin_left, y, max_width=max_w, line_height_factor=1.5,
+        y = ctx.draw_title_fitted(
+            chapter_title, ctx.font("heading"), max_size=20, min_size=14,
+            color=ctx.color("ink"), x=ctx.margin_left, y=y,
+            max_width=max_w, line_height_factor=1.4,
+        )
+        # Decorative accent line under title
+        ctx.draw_accent_line(
+            ctx.margin_left, y - 4,
+            ctx.margin_left + 60, "accent", width=1.5,
         )
         y -= 20
 
@@ -108,18 +126,20 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
     ctx.start_page("background")
     ctx.draw_header_bar()
+    _draw_sidebar(ctx, "accent", width=3, x_offset=28)
 
     chapter_number = data.get("chapter_number", "")
     chapter_title = data.get("chapter_title", "")
     paragraphs = data.get("paragraphs", [])
 
-    body_font = "Helvetica"
+    body_font = ctx.font("body")
     body_size = 11
     body_color = ctx.color("ink")
     max_w = ctx.text_area_w
     para_gap = 6
-    blank_gap = 10
+    blank_gap = 12
     bottom_limit = ctx.margin_bottom + 30
+    line_height = 1.85  # More generous line spacing for readability
 
     y = ctx.H - 0.8 * inch
 
@@ -135,10 +155,16 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
     # Chapter title — auto-fitted
     if chapter_title:
         y = ctx.draw_title_fitted(
-            chapter_title, "Helvetica-Bold", max_size=18, min_size=14,
+            chapter_title, "Helvetica-Bold", max_size=20, min_size=14,
             color=ctx.color("ink"), x=ctx.margin_left, y=y,
+            max_width=max_w,
         )
-        y -= 16
+        # Decorative line under title
+        ctx.draw_accent_line(
+            ctx.margin_left, y - 4,
+            ctx.margin_left + 80, "accent", width=2,
+        )
+        y -= 20
 
     is_first_page = True
 
@@ -148,19 +174,22 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
             y -= blank_gap
             continue
 
-        needed = _text_height(para, body_font, body_size, max_w)
+        needed = _text_height(para, body_font, body_size, max_w,
+                              line_height_factor=line_height)
 
         if y - needed < bottom_limit:
             ctx.draw_page_number(style="center")
             ctx.new_page()
             ctx.start_page("background")
             ctx.draw_header_bar()
+            _draw_sidebar(ctx, "accent", width=3, x_offset=28)
             y = ctx.H - 0.8 * inch
             is_first_page = False
 
         y = ctx.draw_text_wrapped(
             para, body_font, body_size, body_color,
             ctx.margin_left, y, max_width=max_w,
+            line_height_factor=line_height,
         )
         y -= para_gap
 
@@ -175,22 +204,26 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     ctx.start_page("primary")
 
-    # Accent line
+    # Accent line at top
     ctx.c.setStrokeColor(ctx.color("accent"))
     ctx.c.setLineWidth(0.5)
     ctx.c.line(72, ctx.H - 50, ctx.W - 72, ctx.H - 50)
+
+    # Thin sidebar
+    _draw_sidebar(ctx, "accent", width=2, x_offset=30)
 
     chapter_number = data.get("chapter_number", "")
     chapter_title = data.get("chapter_title", "")
     paragraphs = data.get("paragraphs", [])
 
-    body_font = "Helvetica"
+    body_font = ctx.font("body")
     body_size = 11
     body_color = ctx.color("background")
     max_w = ctx.text_area_w
     para_gap = 6
     blank_gap = 12
     bottom_limit = ctx.margin_bottom + 40
+    line_height = 1.85
 
     y = ctx.H - 90
 
@@ -203,12 +236,15 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
 
     # Chapter title
     if chapter_title:
-        ctx.c.setFont("Helvetica-Bold", 20)
-        ctx.c.setFillColor(ctx.color("background"))
-        y = ctx.draw_text_wrapped(
-            chapter_title, "Helvetica-Bold", 20, ctx.color("background"),
-            ctx.margin_left, y, max_width=max_w, line_height_factor=1.5,
+        y = ctx.draw_title_fitted(
+            chapter_title, "Helvetica-Bold", max_size=20, min_size=14,
+            color=ctx.color("background"), x=ctx.margin_left, y=y,
+            max_width=max_w,
         )
+        # Decorative accent dash
+        ctx.c.setStrokeColor(ctx.color("accent"))
+        ctx.c.setLineWidth(2)
+        ctx.c.line(ctx.margin_left, y - 4, ctx.margin_left + 50, y - 4)
         y -= 24
 
     # Body paragraphs
@@ -217,21 +253,24 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
             y -= blank_gap
             continue
 
-        needed = _text_height(para, body_font, body_size, max_w)
+        needed = _text_height(para, body_font, body_size, max_w,
+                              line_height_factor=line_height)
 
         if y - needed < bottom_limit:
             ctx.draw_page_number(style="center")
             ctx.new_page()
             ctx.start_page("primary")
-            # Re-draw accent line on continuation pages
+            # Re-draw decorative elements on continuation pages
             ctx.c.setStrokeColor(ctx.color("accent"))
             ctx.c.setLineWidth(0.5)
             ctx.c.line(72, ctx.H - 50, ctx.W - 72, ctx.H - 50)
+            _draw_sidebar(ctx, "accent", width=2, x_offset=30)
             y = ctx.H - 80
 
         y = ctx.draw_text_wrapped(
             para, body_font, body_size, body_color,
             ctx.margin_left, y, max_width=max_w,
+            line_height_factor=line_height,
         )
         y -= para_gap
 

@@ -14,8 +14,8 @@
     },
     "fonts": {
       "heading": "Helvetica-Bold",
-      "body": "Helvetica",
-      "body_italic": "Helvetica-Oblique",
+      "body": "CrimsonPro",
+      "body_italic": "CrimsonProItalic",
       "mono": "Courier"
     },
     "page_size": "letter",
