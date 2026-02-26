@@ -119,7 +119,7 @@ def _render_editorial(ctx: RenderContext, data: dict, config: ProductConfig) -> 
 
 
 def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
-    """Full-bleed cover with gradient, corner logo, bold title."""
+    """Full-bleed gradient cover, corner logo, bold title."""
     title = data.get("title", config.title)
     subtitles = data.get("subtitle", [])
     if isinstance(subtitles, str):
@@ -130,41 +130,36 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
     from reportlab.lib.units import inch
 
-    # Full-bleed primary background
-    ctx.start_page("primary")
-
-    # Gradient overlay — darker at bottom for depth
+    # Full-page gradient — seamless primary to secondary
+    ctx._page_num += 1
     primary = ctx.color("primary")
     secondary = ctx.color("secondary")
-    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H * 0.55, secondary, primary)
-
-    # Accent bar — full width, creates visual anchor
-    accent_y = ctx.H - 2.2 * inch
-    ctx.c.setFillColor(ctx.color("accent"))
-    ctx.c.rect(0, accent_y, ctx.W, 4, fill=1, stroke=0)
+    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H, primary, secondary, steps=100)
 
     # Logo — top-left corner, tasteful size
     if logo_path:
         _draw_logo(ctx, logo_path, ctx.margin_left, ctx.H - 0.6 * inch,
                    align="left", max_w=60, max_h=60)
 
-    # Badge — below accent bar
+    # Thin accent line — visual anchor
+    accent_y = ctx.H * 0.58
+    ctx.c.setFillColor(ctx.color("accent"))
+    ctx.c.rect(ctx.margin_left, accent_y, ctx.text_area_w * 0.3, 3,
+               fill=1, stroke=0)
+
+    # Badge
     if badge:
         ctx.c.setFillColor(ctx.color("accent"))
         ctx.c.roundRect(
-            ctx.margin_left, accent_y - 0.55 * inch,
+            ctx.margin_left, accent_y + 16,
             1.5 * inch, 0.35 * inch, 3, fill=1, stroke=0,
         )
         ctx.c.setFillColor(ctx.color("background"))
         ctx.c.setFont("Helvetica-Bold", 11)
-        ctx.c.drawString(
-            ctx.margin_left + 0.25 * inch,
-            accent_y - 0.45 * inch,
-            badge,
-        )
+        ctx.c.drawString(ctx.margin_left + 0.25 * inch, accent_y + 26, badge)
 
-    # Title — large, left-aligned, below accent bar
-    title_y = accent_y - 0.8 * inch
+    # Title — large, left-aligned, below accent line
+    title_y = accent_y - 30
     title_text = " ".join(title) if isinstance(title, list) else title
     y = ctx.draw_title_fitted(
         title_text, "Helvetica-Bold", max_size=36, min_size=22,
@@ -172,7 +167,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
         max_width=ctx.text_area_w,
     )
 
-    # Subtitle — lighter weight below title
+    # Subtitle
     if subtitles:
         y -= 12
         ctx.c.setFont("Helvetica", 13)
@@ -197,7 +192,7 @@ def _render_clean(ctx: RenderContext, data: dict, config: ProductConfig) -> None
 
 
 def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
-    """Dark background, centered title, warm amber accents."""
+    """Full-page dark gradient, centered title, warm amber accents."""
     title = data.get("title", config.title)
     subtitles = data.get("subtitle", [])
     if isinstance(subtitles, str):
@@ -205,13 +200,11 @@ def _render_warm(ctx: RenderContext, data: dict, config: ProductConfig) -> None:
     brand = data.get("brand", "")
     logo_path = data.get("logo_path", "")
 
-    # Full-bleed dark background
-    ctx.start_page("primary")
-
-    # Subtle gradient — lighter in center for depth
+    # Full-page gradient — seamless dark transition
+    ctx._page_num += 1
     primary = ctx.color("primary")
     secondary = ctx.color("secondary")
-    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H * 0.4, secondary, primary)
+    _draw_gradient_rect(ctx, 0, 0, ctx.W, ctx.H, primary, secondary, steps=100)
 
     # Accent lines — top and bottom framing
     ctx.c.setStrokeColor(ctx.color("accent"))
